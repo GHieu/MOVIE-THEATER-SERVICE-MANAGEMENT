@@ -4,6 +4,11 @@ import MoviesPage from './pages/MoviesPage';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MovieDetailPage from './pages/MovieDetailPage';
+import BookingPage from './pages/BookingPage';
+import SeatPage from './pages/SeatPage';
+import FoodPage from './pages/FoodPage';
+import PaymentPage from './pages/PaymentPage';
+import ConfirmationPage from './pages/ConfirmationPage';
 function App() {
   return (
     <Router>
@@ -12,6 +17,11 @@ function App() {
         <Route path="/homepage" element={<HomePage />} />
         <Route path="/movies" element={<MoviesPage />} />
         <Route path="/movies/:id" element={<MovieDetailPage />} />
+        <Route path="/booking/:movieId" element={<SeatPage />} />
+        <Route path="/food" element={<FoodPage />} />
+        <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/order-success" element={<ConfirmationPage />} />
+
       </Routes>
       <Footer />
     </Router>
