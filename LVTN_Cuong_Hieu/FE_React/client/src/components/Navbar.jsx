@@ -18,9 +18,16 @@ export default function Navbar() {
 
         {/* Đăng nhập / Đăng ký */}
         <div className="flex items-center space-x-2 text-sm">
-          <button className="hover:text-yellow-400 transition">Đăng nhập</button>
-          <span className="text-gray-500">|</span>
-          <button className="hover:text-yellow-400 transition">Đăng ký</button>
+        <Link to = "/login">
+            <button className="hover:text-yellow-400 transition">Đăng nhập</button>
+        </Link>
+        <span className="text-gray-500">|</span>
+        <Link to = "/register">
+            <button className="hover:text-yellow-400 transition">Đăng ký</button>
+        </Link>
+          
+          
+          
         </div>
       </div>
     </header>

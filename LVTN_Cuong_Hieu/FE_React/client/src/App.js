@@ -9,6 +9,9 @@ import SeatPage from './pages/SeatPage';
 import FoodPage from './pages/FoodPage';
 import PaymentPage from './pages/PaymentPage';
 import ConfirmationPage from './pages/ConfirmationPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import RegisterForm from './pages/RegisterForm';
 function App() {
   return (
     <Router>
@@ -21,7 +24,9 @@ function App() {
         <Route path="/food" element={<FoodPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/order-success" element={<ConfirmationPage />} />
-
+        <Route path="/login" element={<LoginPage />} />
+        {/* <Route path="/register" element={<RegisterPage />} /> */}
+        <Route path="/register" element={<RegisterForm />} />
       </Routes>
       <Footer />
     </Router>
