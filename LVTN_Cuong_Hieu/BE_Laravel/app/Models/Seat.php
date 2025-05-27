@@ -14,7 +14,9 @@ class Seat extends Model
         'room_id',
         'seat_row',
         'seat_number',
-        'seat_type'
+        'seat_type',
+        'price',
+        'status'
     ];
 
     public function room()
