@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\MovieController;
 use App\Http\Controllers\Admin\SeatController;
 use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Admin\ShowtimeController;
+use App\Http\Controllers\Admin\BlogController;
+
 
 
 //Login Admin
@@ -52,6 +54,15 @@ Route::prefix('admin')->group(function () {
             Route::put('/{id}', [ShowtimeController::class, 'update']);
             Route::delete('/{id}', [ShowtimeController::class, 'destroy']);
             Route::get('/statistic/count', [ShowtimeController::class, 'count']);
+        });
+
+        //Blog
+        Route::prefix('blogs')->group(function () {
+            Route::get('/', [BlogController::class, 'index']);
+            Route::post('/', [BlogController::class, 'store']);
+            Route::put('/{id}', [BlogController::class, 'update']);
+            Route::delete('/{id}', [BlogController::class, 'destroy']);
+            Route::get('/count', [BlogController::class, 'count']);
         });
     });
 });
