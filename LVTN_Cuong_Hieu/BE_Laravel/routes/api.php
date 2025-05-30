@@ -10,6 +10,8 @@ use App\Http\Controllers\Admin\SeatController;
 use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Admin\ShowtimeController;
 use App\Http\Controllers\Admin\BlogController;
+use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\ServiceController;
 
 
 
@@ -64,6 +66,21 @@ Route::prefix('admin')->group(function () {
             Route::delete('/{id}', [BlogController::class, 'destroy']);
             Route::get('/count', [BlogController::class, 'count']);
         });
+
+        //Employee
+        Route::prefix('employees')->group(function () {
+            Route::get('/', [EmployeeController::class, 'index']);
+            Route::post('/', [EmployeeController::class, 'store']);
+            Route::put('/{id}', [EmployeeController::class, 'update']);
+        });
+
+        //Service
+        Route::prefix('services')->group(function () {
+            Route::get('/', [ServiceController::class, 'index']);
+            Route::post('/', [ServiceController::class, 'store']);
+            Route::put('/{id}', [ServiceController::class, 'update']);
+            Route::delete('/{id}', [ServiceController::class, 'destroy']);
+        });
     });
 });
 
@@ -74,4 +91,11 @@ Route::post('/login', [App\Http\Controllers\Customer\AuthController::class, 'log
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [App\Http\Controllers\Customer\AuthController::class, 'user']);
     Route::post('/logout', [App\Http\Controllers\Customer\AuthController::class, 'logout']);
+});
+
+
+//Movie
+Route::prefix('/')->group(function () {
+    Route::get('/', [App\Http\Controllers\Customer\MovieController::class, 'index']);
+    Route::get('/{id}', [App\Http\Controllers\Customer\MovieController::class, 'show']);
 });
