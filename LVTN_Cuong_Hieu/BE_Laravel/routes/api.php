@@ -19,7 +19,7 @@ use App\Http\Controllers\Admin\ServiceController;
 Route::prefix('admin')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 
-    Route::middleware('auth:sactum')->group(function () {
+    Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user', [AuthController::class, 'user']);
         Route::post('/logout', [AuthController::class, 'logout']);
 

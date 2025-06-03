@@ -23,6 +23,7 @@ return new class extends Migration {
             $table->date('release_date');
             $table->date('end_date');
             $table->boolean('status');
+            $table->timestamps();
         });
     }
 

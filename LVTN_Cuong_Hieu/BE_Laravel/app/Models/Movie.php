@@ -13,7 +13,7 @@ class Movie extends Model
         'description',
         'duration',
         'genre',
-        'direction',
+        'director',
         'cast',
         'poster',
         'trailer_url',
