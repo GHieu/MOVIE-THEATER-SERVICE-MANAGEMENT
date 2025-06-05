@@ -16,6 +16,16 @@ class Room extends Model
         'status'
     ];
 
+    public function getStatusTextAttribute()
+    {
+        return match ($this->status) {
+            0 => 'available',
+            1 => 'unavailable',
+            2 => 'under_maintenance',
+            default => 'unknown',
+        };
+    }
+
     public function seats()
     {
         return $this->hasMany(Seat::class);

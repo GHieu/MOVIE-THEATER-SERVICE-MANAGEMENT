@@ -15,8 +15,7 @@ return new class extends Migration {
             $table->string('name');
             $table->string('type');
             $table->integer('seat_count');
-            $table->boolean('status');
-
+            $table->unsignedTinyInteger('status')->default(0);
         });
     }
 

@@ -15,7 +15,7 @@ class RoomController extends Controller
             'name' => 'required|string|unique:rooms',
             'type' => 'required|string',
             'seat_count' => 'required|integer|min:1',
-            'status' => 'required|in:active,inactive,under_maintenance'
+            'status' => 'required|in:0,1,2  '
         ]);
 
         $room = Room::create($validated);
@@ -41,7 +41,7 @@ class RoomController extends Controller
             'name' => 'string|unique:rooms,name,' . $id,
             'type' => 'string',
             'seat_count' => 'integer|min:1',
-            'status' => 'in:active,inactive,under_maintenance'
+            'status' => 'in:0,1,2'
         ]);
 
         $room->update($validated);
@@ -67,9 +67,9 @@ class RoomController extends Controller
     public function statistics()
     {
         $total = Room::count();
-        $active = Room::where('status', 'active')->count();
-        $inactive = Room::where('status', 'inactive')->count();
-        $under_maintenance = Room::where('status', 'under_maintenance')->count();
+        $active = Room::where('status', '0')->count();
+        $inactive = Room::where('status', '1')->count();
+        $under_maintenance = Room::where('status', '2')->count();
 
         return response()->json([
             'total' => $total,
