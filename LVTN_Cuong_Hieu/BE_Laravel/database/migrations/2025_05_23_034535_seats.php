@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->integer('seat_number');
             $table->enum('seat_type', ['standard', 'vip', 'couple']);
             $table->integer('price')->default(0);
-            $table->enum('status', ['available', 'reversed'])->default('available');
+            $table->enum('status', ['available', 'reversed', 'broken'])->default('available');
             $table->timestamps();
         });
     }

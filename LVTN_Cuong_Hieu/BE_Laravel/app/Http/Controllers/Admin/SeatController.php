@@ -23,7 +23,7 @@ class SeatController extends Controller
         $validated = $request->validate([
             'seat_type' => 'required|in:standard,vip,couple',
             'price' => 'integer|min:0',
-            'status' => 'in:available,reserved,broken'
+            'status' => 'in:available,reversed,broken'
         ]);
 
         $seat->update($validated);
