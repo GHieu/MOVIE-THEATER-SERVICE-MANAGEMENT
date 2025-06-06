@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('movie_id')->constrained('movies')->onDelete('cascade');
             $table->foreignId('room_id')->constrained('rooms')->onDelete('cascade');
-            $table->foreignId('promotion_id')->constrained('promotions')->nullOnDelete();
+            $table->foreignId('promotion_id')->nullable()->constrained('promotions')->nullOnDelete();
             $table->dateTime('start_time');
             $table->dateTime('end_time');
             $table->decimal('price', 10, 2);

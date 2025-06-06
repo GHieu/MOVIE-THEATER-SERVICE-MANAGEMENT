@@ -10,6 +10,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        
         schema::create('promotions', function (Blueprint $table) {
             $table->id();
             $table->string('title');
