@@ -41,6 +41,7 @@ Route::prefix('admin')->group(function () {
 
         //Room
         Route::prefix('rooms')->group(function () {
+            Route::get('/', [RoomController::class, 'index']);
             Route::post('/', [RoomController::class, 'store']);
             Route::put('/{id}', [RoomController::class, 'update']);
             Route::delete('/{id}', [RoomController::class, 'destroy']);
@@ -95,7 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 //Movie
-Route::prefix('/')->group(function () {
+Route::prefix('/movies')->group(function () {
     Route::get('/', [App\Http\Controllers\Customer\MovieController::class, 'index']);
     Route::get('/{id}', [App\Http\Controllers\Customer\MovieController::class, 'show']);
 });

@@ -1,19 +1,14 @@
 import React from "react";
+import { useParams } from "react-router-dom";
+import useMovieDetail from '../hooks/useMovieDetail';
 import ShowTimeTabs from "../components/ShowTimeTabs";
+
 const MovieDetailPage = () => {
-  const movie = {
-    title: "Yadang: Ba Mặt Lật Kèo",
-    description:
-      "Trong giới tội phạm ma túy, những người cung cấp thông tin 'Ya-Dang' bán thông tin của tội phạm. Tội phạm sử dụng thông tin này để giảm án, trong khi cơ quan thực thi pháp luật sử dụng thông tin này để bắt giữ. Ya-Dang, cảnh sát và công tố viên tạo thành một tam giác quan trọng.",
-    director: "Hwang Byeng-Gug",
-    actors: "Kang Ha Neul, Yoo Hae Jin, Park Hae Joon",
-    genre: "Hành động",
-    duration: "122 phút",
-    language: "Tiếng Hàn",
-    releaseDate: "16/05/2025",
-    posterUrl:
-      "https://upload.wikimedia.org/wikipedia/vi/3/35/Ba_M%E1%BA%B7t_L%E1%BA%ADt_K%C3%A8o_poster.jpg",
-  };
+  const { id } = useParams(); // lấy id từ URL
+  const { movie, loading, error } = useMovieDetail(id); // gọi API
+
+  if (loading) return <div className="text-center p-8">Đang tải thông tin phim...</div>;
+  if (error || !movie) return <div className="text-center text-red-500 p-8">Không tìm thấy phim.</div>;
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
@@ -21,7 +16,7 @@ const MovieDetailPage = () => {
         {/* Poster */}
         <div className="w-full md:w-1/4 flex-shrink-0">
           <img
-            src={movie.posterUrl}
+            src={movie.poster}
             alt={movie.title}
             className="w-full rounded-md shadow-md object-cover"
           />
@@ -37,24 +32,23 @@ const MovieDetailPage = () => {
             <div>{movie.director}</div>
 
             <div className="font-medium">DIỄN VIÊN:</div>
-            <div>{movie.actors}</div>
+            <div>{movie.cast}</div>
 
             <div className="font-medium">THỂ LOẠI:</div>
             <div>{movie.genre}</div>
 
             <div className="font-medium">THỜI LƯỢNG:</div>
-            <div>{movie.duration}</div>
-
-            <div className="font-medium">NGÔN NGỮ:</div>
-            <div>{movie.language}</div>
+            <div>{movie.duration} phút</div>
 
             <div className="font-medium">KHỞI CHIẾU:</div>
-            <div>{movie.releaseDate}</div>
+            <div>{movie.release_date}</div>
           </div>
         </div>
       </div>
+
+      {/* Tab suất chiếu */}
       <div className="container mx-auto px-4 py-6">
-        <ShowTimeTabs movieId="abc123" />
+        <ShowTimeTabs movieId={movie.id} />
       </div>
     </div>
   );
