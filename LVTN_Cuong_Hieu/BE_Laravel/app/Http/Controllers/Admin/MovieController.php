@@ -49,6 +49,7 @@ class MovieController extends Controller
             'release_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:release_date',
             'status' => 'required|boolean',
+            'type' => 'required|in:now_showing,coming_soon',
         ]);
 
         if ($request->hasFile('poster')) {
@@ -81,7 +82,8 @@ class MovieController extends Controller
             'trailer_url' => 'nullable|url',
             'release_date' => 'sometimes|required|date',
             'end_date' => 'sometimes|required|date|after_or_equal:release_date',
-            'status' => 'sometimes|required|boolean'
+            'status' => 'sometimes|required|boolean',
+            'type' => 'sometimes|required|in:now_showing,coming_soon',
         ]);
 
         if ($request->hasFile('poster')) {

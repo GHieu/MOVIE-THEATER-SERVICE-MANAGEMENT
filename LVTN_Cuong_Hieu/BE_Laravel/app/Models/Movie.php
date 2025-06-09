@@ -21,7 +21,8 @@ class Movie extends Model
         'trailer_url',
         'release_date',
         'end_date',
-        'status'
+        'status',
+        'type'
     ];
 
     public function reviews()

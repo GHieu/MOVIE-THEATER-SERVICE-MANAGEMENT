@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Movie;
-
+use Carbon\Carbon;
 class MovieController extends Controller
 {
     public function index(Request $request)
@@ -20,8 +20,12 @@ class MovieController extends Controller
             $query->where('title', 'like', '%' . $request->search . '%');
         }
 
-        //Lấy phim đang trong thời gian chiếu
-        $query->whereDate('end_date', '>=', now());
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        } else {
+            // Mặc định chỉ hiện các phim chưa hết chiếu
+            $query->whereDate('end_date', '>=', Carbon::today());
+        }
 
         return response()->json($query->orderBy('release_date', 'desc')->get());
     }
