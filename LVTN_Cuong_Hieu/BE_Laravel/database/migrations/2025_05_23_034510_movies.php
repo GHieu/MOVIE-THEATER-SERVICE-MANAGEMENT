@@ -19,6 +19,8 @@ return new class extends Migration {
             $table->string('director');
             $table->text('cast');
             $table->string('poster');
+            $table->string('banner');
+            $table->string('age');
             $table->string('trailer_url');
             $table->date('release_date');
             $table->date('end_date');

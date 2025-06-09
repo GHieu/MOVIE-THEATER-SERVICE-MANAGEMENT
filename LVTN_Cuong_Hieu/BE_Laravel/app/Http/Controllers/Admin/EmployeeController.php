@@ -29,8 +29,12 @@ class EmployeeController extends Controller
             'phone' => 'required|string|max:20',
             'position' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'required|string|max:255'
+            'image' => 'required|image|max:2048'
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('images')->store('images', 'public');
+        }
 
         $validated['created_at'] = now();
         $employee = Employee::create($validated);
@@ -50,8 +54,12 @@ class EmployeeController extends Controller
             'phone' => 'sometimes|required|string|max:20',
             'position' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'sometimes|required|string|max:255'
+            'image' => 'sometimes|required|image|max:2048'
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('images')->store('images', 'public');
+        }
 
         $employee->update($validated);
         return response()->json($employee);

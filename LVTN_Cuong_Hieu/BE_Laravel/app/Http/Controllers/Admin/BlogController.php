@@ -27,8 +27,13 @@ class BlogController extends Controller
             'admin_id' => 'required|exists:admins,id',
             'title' => 'required|string|max:100',
             'content' => 'required|string',
-            'image' => 'required|string|max:255'
+            'image' => 'required|image|max:2048'
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('images')->store('images', 'public');
+        }
+
         $blog = Blog::create($validated);
         return response()->json($blog, 201);
     }
@@ -40,8 +45,13 @@ class BlogController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:100',
             'content' => 'sometimes|required|string',
-            'image' => 'sometimes|required|string|max:255'
+            'image' => 'sometimes|required|image|max:2048'
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('images')->store('images', 'public');
+        }
+
         $blog = Blog::update($validated);
         return response()->json($blog);
     }

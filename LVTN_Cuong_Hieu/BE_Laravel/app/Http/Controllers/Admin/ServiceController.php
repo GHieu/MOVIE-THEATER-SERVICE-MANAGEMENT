@@ -21,9 +21,13 @@ class ServiceController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'image' => 'required|string|max:255',
+            'image' => 'required|image|max:2048',
             'status' => 'required|boolean'
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('images')->store('images', 'public');
+        }
 
         $service = Service::create($validated);
         return response()->json($service, 201);
@@ -37,9 +41,13 @@ class ServiceController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|numeric|min:0',
-            'image' => 'sometimes|required|string|max:255',
+            'image' => 'sometimes|required|image|max:2048',
             'status' => 'sometimes|required|boolean'
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('images')->store('images', 'public');
+        }
 
         $service->update($validated);
         return response()->json($service);

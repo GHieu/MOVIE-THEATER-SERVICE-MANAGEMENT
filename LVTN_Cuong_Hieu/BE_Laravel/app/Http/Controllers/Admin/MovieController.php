@@ -43,6 +43,8 @@ class MovieController extends Controller
             'director' => 'nullable|string',
             'cast' => 'nullable|string',
             'poster' => 'nullable|image|max:2048',
+            'banner' => 'nullable|image|max:4096',
+            'age' => 'nullable|string|max:10',
             'trailer_url' => 'nullable|url',
             'release_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:release_date',
@@ -51,6 +53,10 @@ class MovieController extends Controller
 
         if ($request->hasFile('poster')) {
             $validated['poster'] = $request->file('poster')->store('posters', 'public');
+        }
+
+        if ($request->hasFile('banner')) {
+            $validated['banner'] = $request->file('banner')->store('banners', 'public');
         }
 
         $movie = Movie::create($validated);
@@ -70,6 +76,8 @@ class MovieController extends Controller
             'director' => 'nullable|string',
             'cast' => 'nullable|string',
             'poster' => 'nullable|image|max:2048',
+            'banner' => 'nullable|image|max:4096',
+            'age' => 'nullable|string|max:10',
             'trailer_url' => 'nullable|url',
             'release_date' => 'sometimes|required|date',
             'end_date' => 'sometimes|required|date|after_or_equal:release_date',
@@ -80,6 +88,9 @@ class MovieController extends Controller
             $validated['poster'] = $request->file('poster')->store('posters', 'public');
         }
 
+        if ($request->hasFile('banner')) {
+            $validated['banner'] = $request->file('banners')->store('banners', 'public');
+        }
         $movie->update($validated);
         return response()->json($movie);
     }

@@ -16,6 +16,8 @@ class Movie extends Model
         'director',
         'cast',
         'poster',
+        'banner',
+        'age',
         'trailer_url',
         'release_date',
         'end_date',
