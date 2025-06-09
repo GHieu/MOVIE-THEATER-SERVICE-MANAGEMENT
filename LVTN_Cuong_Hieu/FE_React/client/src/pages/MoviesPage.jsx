@@ -1,17 +1,12 @@
 import React from 'react';
 import MovieCard from '../components/MovieCard';
+import useMoviesUser from '../hooks/useMovieUser';
 
 export default function MoviesPage() {
-  // Dữ liệu mẫu chia thành 2 nhóm
-  const nowShowing = [
-    { id: 1, title: 'Lật Mặt 7', poster: '/assets/movie1.jpg' },
-    { id: 2, title: 'Đào Phở và Piano', poster: '/assets/movie2.jpg' },
-  ];
+  const { movies, loading, error } = useMoviesUser();
 
-  const comingSoon = [
-    { id: 3, title: 'Tarot', poster: '/assets/movie3.jpg' },
-    { id: 4, title: 'Quỷ Cẩu', poster: '/assets/movie4.jpg' },
-  ];
+  if (loading) return <div className="text-center py-10">Đang tải dữ liệu phim...</div>;
+  if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-10">
@@ -19,7 +14,7 @@ export default function MoviesPage() {
       <section>
         <h2 className="text-3xl font-bold mb-6 text-yellow-400">Phim Đang Chiếu</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {nowShowing.map((movie) => (
+          {movies.map((movie) => (
             <MovieCard key={movie.id} movie={movie} />
           ))}
         </div>
@@ -29,9 +24,10 @@ export default function MoviesPage() {
       <section>
         <h2 className="text-3xl font-bold mb-6 text-yellow-400">Phim Sắp Chiếu</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {comingSoon.map((movie) => (
+          {/* {movies.map((movie) => (
             <MovieCard key={movie.id} movie={movie} />
-          ))}
+          ))} */}
+          Chưa có
         </div>
       </section>
     </div>

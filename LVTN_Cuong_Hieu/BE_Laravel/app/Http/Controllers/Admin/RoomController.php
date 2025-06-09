@@ -8,6 +8,11 @@ use App\Models\Room;
 
 class RoomController extends Controller
 {
+
+    public function index()
+    {
+        return response()->json(Room::all());
+    }
     //thêm
     public function store(Request $request)
     {
