@@ -25,6 +25,7 @@ return new class extends Migration {
             $table->date('release_date');
             $table->date('end_date');
             $table->boolean('status');
+            $table->enum('type', ['now_showing', 'coming_soon'])->default('coming_soon');
             $table->timestamps();
         });
     }
