@@ -20,7 +20,7 @@ return new class extends Migration {
             $table->text('cast');
             $table->string('poster');
             $table->string('banner');
-            $table->string('age');
+            $table->enum('age', ['P', 'T13', 'T16', 'T18']);
             $table->string('trailer_url');
             $table->date('release_date');
             $table->date('end_date');
