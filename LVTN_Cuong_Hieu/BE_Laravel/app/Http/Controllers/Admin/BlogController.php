@@ -31,7 +31,7 @@ class BlogController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('images')->store('images', 'public');
+            $validated['image'] = $request->file('image')->store('images', 'public');
         }
 
         $blog = Blog::create($validated);
