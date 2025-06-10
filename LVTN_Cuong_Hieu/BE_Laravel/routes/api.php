@@ -1,6 +1,8 @@
 <?php
 
 
+
+use App\Http\Controllers\Admin\ReviewController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +14,7 @@ use App\Http\Controllers\Admin\ShowtimeController;
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\ProfileController;
 
 
 
@@ -22,6 +25,10 @@ Route::prefix('admin')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user', [AuthController::class, 'user']);
         Route::post('/logout', [AuthController::class, 'logout']);
+
+        Route::get('profile', [ProfileController::class, 'show']);
+        Route::put('profile', [MovieController::class, 'update']);
+        Route::put('change-password', [MovieController::class, 'changePassword']);
 
         //Movie
         Route::prefix('movies')->group(function () {
@@ -82,6 +89,9 @@ Route::prefix('admin')->group(function () {
             Route::put('/{id}', [ServiceController::class, 'update']);
             Route::delete('/{id}', [ServiceController::class, 'destroy']);
         });
+
+        //Review
+        Route::get('reviews', [ReviewController::class, 'index']);
     });
 });
 
