@@ -37,11 +37,12 @@ class ServiceController extends Controller
     public function update(Request $request, $id)
     {
         $service = Service::findOrFail($id);
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|numeric|min:0',
-            'image' => 'sometimes|required|image|max:2048',
+            'image' => 'sometimes|image|max:2048',
             'status' => 'sometimes|required|boolean'
         ]);
 
@@ -50,8 +51,10 @@ class ServiceController extends Controller
         }
 
         $service->update($validated);
+
         return response()->json($service);
     }
+
 
     //Xoá
     public function destroy($id)

@@ -52,7 +52,7 @@ class BlogController extends Controller
             $validated['image'] = $request->file('image')->store('images', 'public');
         }
 
-        $blog = Blog::update($validated);
+        $blog->update($validated);
         return response()->json($blog);
     }
 
