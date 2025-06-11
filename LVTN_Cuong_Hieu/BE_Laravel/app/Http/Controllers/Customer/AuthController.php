@@ -26,7 +26,6 @@ class AuthController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-
         $customer = Customer::create([
             'name' => $request->name,
             'birthdate' => $request->birthdate,
