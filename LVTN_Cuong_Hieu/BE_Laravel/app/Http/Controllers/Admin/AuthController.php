@@ -6,29 +6,40 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Admin;
 use Hash;
+use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $request->validate([
+
+        $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
-        $admin = Admin::where('email', $request->email)->first();
 
-        if (!$admin || !Hash::check($request->password, $admin->password)) {
-            return response()->json([
-                'message' => 'Email hoặc mật khẩu không đúng'
-            ], 401);
+        $admin = Admin::where('email', $credentials['email'])->first();
+
+
+        if (!$admin || !Hash::check($credentials['password'], $admin->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['Email hoặc mật khẩu không đúng.'],
+            ]);
         }
 
-        $token = $admin->createToken('admin-token')->plainTextToken;
+
+        $token = $admin->createToken('admin_token')->plainTextToken;
+
 
         return response()->json([
             'message' => 'Đăng nhập thành công',
             'access_token' => $token,
-            'admin' => $admin
+            'token_type' => 'Bearer',
+            'admin' => [
+                'id' => $admin->id,
+                'name' => $admin->name,
+                'email' => $admin->email,
+            ],
         ]);
     }
 

@@ -15,6 +15,10 @@ use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\MembershipController;
+use App\Http\Controllers\Admin\GiftController;
+use App\Http\Controllers\Admin\GifthistoryController;
 
 
 
@@ -92,6 +96,31 @@ Route::prefix('admin')->group(function () {
 
         //Review
         Route::get('reviews', [ReviewController::class, 'index']);
+
+        //Promotion
+        Route::prefix('promotions')->group(function () {
+            Route::get('/', [PromotionController::class, 'index']);
+            Route::post('/', [PromotionController::class, 'store']);
+            Route::delete('/{id}', [PromotionController::class, 'destroy']);
+        });
+
+        //Membership
+        Route::prefix('memberships')->group(function () {
+            Route::get('/', [MembershipController::class, 'index']);
+            Route::post('/', [MembershipController::class, 'store']);
+            Route::put('/{id}', [MembershipController::class, 'update']);
+        });
+
+        //Gift
+        Route::prefix('gifts')->group(function () {
+            Route::get('/', [GiftController::class, 'index']);
+            Route::post('/', [GiftController::class, 'store']);
+            Route::put('/{id}', [GiftController::class, 'update']);
+            Route::delete('/{id}', [GiftController::class, 'destroy']);
+        });
+
+        //GiftHistory
+        Route::post('gifthistory', [GifthistoryController::class, 'exchange']);
     });
 });
 
@@ -109,4 +138,16 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('/movies')->group(function () {
     Route::get('/', [App\Http\Controllers\Customer\MovieController::class, 'index']);
     Route::get('/{id}', [App\Http\Controllers\Customer\MovieController::class, 'show']);
+});
+
+//Blog
+Route::prefix('/blogs')->group(function () {
+    Route::get('/', [App\Http\Controllers\Customer\BlogController::class, 'index']);
+    Route::get('/{id}', [App\Http\Controllers\Customer\BlogController::class, 'show']);
+});
+
+Route::prefix('/profile')->group(function () {
+    Route::get('/', [App\Http\Controllers\Customer\ProfileController::class, 'show']);
+    Route::put('/', [App\Http\Controllers\Customer\ProfileController::class, 'update']);
+    Route::post('/change-password', [App\Http\Controllers\Customer\ProfileController::class, 'changePassword']);
 });

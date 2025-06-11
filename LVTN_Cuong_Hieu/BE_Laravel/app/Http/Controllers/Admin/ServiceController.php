@@ -42,7 +42,7 @@ class ServiceController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|numeric|min:0',
-            'image' => 'sometimes|image|max:2048',
+            'image' => 'sometimes|required|image|max:2048',
             'status' => 'sometimes|required|boolean'
         ]);
 
