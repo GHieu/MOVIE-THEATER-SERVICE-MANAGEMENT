@@ -43,16 +43,18 @@ class BlogController extends Controller
     {
         $blog = Blog::findOrFail($id);
         $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:100',
-            'content' => 'sometimes|required|string',
-            'image' => 'sometimes|required|image|max:2048'
+            'title' => 'sometimes|string|max:100',
+            'content' => 'sometimes|string',
+            'image' => 'sometimes|image|max:2048'
         ]);
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('images', 'public');
+            $blog->image = $request->file('image')->store('images', 'public');
         }
 
-        $blog->update($validated);
+        $blog->title = $request->title;
+        $blog->content = $request->content;
+        $blog->save();
         return response()->json($blog);
     }
 
