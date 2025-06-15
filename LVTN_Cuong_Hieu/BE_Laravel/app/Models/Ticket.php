@@ -8,14 +8,7 @@ class Ticket extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'customer_id',
-        'showtime_id',
-        'seat_id',
-        'promotion_id',
-        'payment_status',
-        'booked_at'
-    ];
+    protected $fillable = ['customer_id', 'showtime_id', 'promotion_id', 'total_price', 'status'];
 
     public function customer()
     {
@@ -30,6 +23,16 @@ class Ticket extends Model
     public function seat()
     {
         return $this->belongsTo(Seat::class);
+    }
+
+    public function promotion()
+    {
+        return $this->belongsTo(Promotion::class);
+    }
+
+    public function details()
+    {
+        return $this->hasMany(Ticket_details::class);
     }
 
     public function serviceOrders()
