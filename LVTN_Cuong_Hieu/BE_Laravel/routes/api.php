@@ -1,10 +1,10 @@
 <?php
 
-
-
-use App\Http\Controllers\Admin\ReviewController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
+
+use App\Http\Controllers\PaymentController;
 
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\MovieController;
@@ -19,6 +19,8 @@ use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\MembershipController;
 use App\Http\Controllers\Admin\GiftController;
 use App\Http\Controllers\Admin\GifthistoryController;
+use App\Http\Controllers\Admin\ServiceOrderController;
+use App\Http\Controllers\Admin\ReviewController;
 
 
 
@@ -121,8 +123,12 @@ Route::prefix('admin')->group(function () {
 
         //GiftHistory
         Route::post('gifthistory', [GifthistoryController::class, 'exchange']);
+
+        //ServiceOrder
+        Route::get('service-orders', [ServiceOrderController::class, 'index']);
     });
 });
+
 
 //Login Customer
 Route::post('/register', [App\Http\Controllers\Customer\AuthController::class, 'register']);
@@ -138,6 +144,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('/movies')->group(function () {
     Route::get('/', [App\Http\Controllers\Customer\MovieController::class, 'index']);
     Route::get('/{id}', [App\Http\Controllers\Customer\MovieController::class, 'show']);
+    Route::get('/{id}/showtimes', [App\Http\Controllers\Customer\MovieController::class, 'showtimes']);
 });
 
 //Blog
@@ -146,8 +153,25 @@ Route::prefix('/blogs')->group(function () {
     Route::get('/{id}', [App\Http\Controllers\Customer\BlogController::class, 'show']);
 });
 
+//Profile
 Route::prefix('/profile')->group(function () {
     Route::get('/', [App\Http\Controllers\Customer\ProfileController::class, 'show']);
     Route::post('/', [App\Http\Controllers\Customer\ProfileController::class, 'update']);
     Route::post('/change-password', [App\Http\Controllers\Customer\ProfileController::class, 'changePassword']);
 });
+
+//Showtime
+Route::prefix('showtimes')->group(function () {
+    Route::get('', [App\Http\Controllers\Customer\ShowtimeController::class, 'index']);
+    Route::get('/{id}', [App\Http\Controllers\Customer\ShowtimeController::class, 'show']);
+
+});
+
+
+
+//Thanh toán ví điện tử
+Route::get('/payment/return', [PaymentController::class, 'handleReturn']);
+Route::post('/payment/notify', [PaymentController::class, 'handleNotify']);
+
+Route::get('/payment/success', fn(Request $r) => 'Thanh toán thành công, Order: ' . $r->get('orderId'));
+Route::get('/payment/failure', fn(Request $r) => 'Thanh toán thất bại hoặc bị huỷ');

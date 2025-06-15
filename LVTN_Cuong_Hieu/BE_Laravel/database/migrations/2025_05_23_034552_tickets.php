@@ -14,10 +14,9 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
             $table->foreignId('showtime_id')->constrained('showtimes')->onDelete('cascade');
-            $table->foreignId('seat_id')->constrained('seats')->onDelete('cascade');
             $table->foreignId('promotion_id')->nullable()->constrained('promotions')->nullOnDelete();
-            $table->enum('payment_status', ['pending', 'paid', 'failed']);
-            $table->dateTime('booked_at');
+            $table->decimal('total_price', 10, 2);
+            $table->enum('payment_status', ['pending', 'paid', 'canceled'])->default('pending');
             $table->timestamps();
         });
     }
