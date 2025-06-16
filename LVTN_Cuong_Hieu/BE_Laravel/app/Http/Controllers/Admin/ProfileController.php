@@ -54,4 +54,31 @@ class ProfileController extends Controller
 
         return response()->json(['message' => 'Đổi mật khẩu thành công!']);
     }
+
+    //Hiển thị mật khẩu
+    public function changePasswordGet(Request $request)
+    {
+        $current = $request->query('current_password');
+        $new = $request->query('new_password');
+        $confirm = $request->query('new_password_confirmation');
+
+        if (!$current || !$new || !$confirm) {
+            return response()->json(['message' => 'Thiếu thông tin đầu vào.'], 400);
+        }
+
+        if ($new !== $confirm) {
+            return response()->json(['message' => 'Xác nhận mật khẩu không khớp.'], 400);
+        }
+
+        $admin = $request->user();
+
+        if (!Hash::check($current, $admin->password)) {
+            return response()->json(['message' => 'Mật khẩu hiện tại không đúng.'], 422);
+        }
+
+        $admin->password = Hash::make($new);
+        $admin->save();
+
+        return response()->json(['message' => 'Đổi mật khẩu thành công (GET).']);
+    }
 }
