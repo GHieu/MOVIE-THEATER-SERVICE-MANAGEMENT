@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Service;
 class ServiceController extends Controller
 {
-    public function index()
+    public function getAllServices()
     {
-        return response()->json(Service::all());
+        return response()->json(Service::where('status', true)->get());
     }
 }

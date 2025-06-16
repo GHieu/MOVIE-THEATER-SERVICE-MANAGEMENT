@@ -13,7 +13,7 @@ return new class extends Migration {
         Schema::create('ticket_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ticket_id')->constrained('tickets')->onDelete('cascade');
-            $table->string('seat_number'); // ví dụ: A5, B10
+            $table->foreignId('seat_id')->constrained('seats')->onDelete('cascade');
             $table->decimal('price', 10, 2); // giá cho ghế này (áp dụng KM nếu cần)
             $table->timestamps();
         });
