@@ -33,8 +33,10 @@ Route::prefix('admin')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
 
         Route::get('profile', [ProfileController::class, 'show']);
-        Route::post('profile', [MovieController::class, 'update']);
-        Route::post('change-password', [MovieController::class, 'changePassword']);
+        Route::post('profile', [ProfileController::class, 'update']);
+        Route::post('change-password', [ProfileController::class, 'changePassword']);
+        Route::get('change-password', [ProfileController::class, 'changePasswordGet']);
+
 
         //Movie
         Route::prefix('movies')->group(function () {
@@ -137,6 +139,15 @@ Route::post('/login', [App\Http\Controllers\Customer\AuthController::class, 'log
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [App\Http\Controllers\Customer\AuthController::class, 'user']);
     Route::post('/logout', [App\Http\Controllers\Customer\AuthController::class, 'logout']);
+
+    //Profile
+    Route::prefix('/profile')->group(function () {
+        Route::get('/', [App\Http\Controllers\Customer\ProfileController::class, 'show']);
+        Route::post('/', [App\Http\Controllers\Customer\ProfileController::class, 'update']);
+        Route::post('/change-password', [App\Http\Controllers\Customer\ProfileController::class, 'changePassword']);
+        Route::get('/change-password', [App\Http\Controllers\Customer\ProfileController::class, 'changePasswordGet']);
+
+    });
 });
 
 
@@ -151,13 +162,6 @@ Route::prefix('/movies')->group(function () {
 Route::prefix('/blogs')->group(function () {
     Route::get('/', [App\Http\Controllers\Customer\BlogController::class, 'index']);
     Route::get('/{id}', [App\Http\Controllers\Customer\BlogController::class, 'show']);
-});
-
-//Profile
-Route::prefix('/profile')->group(function () {
-    Route::get('/', [App\Http\Controllers\Customer\ProfileController::class, 'show']);
-    Route::post('/', [App\Http\Controllers\Customer\ProfileController::class, 'update']);
-    Route::post('/change-password', [App\Http\Controllers\Customer\ProfileController::class, 'changePassword']);
 });
 
 //Showtime
