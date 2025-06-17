@@ -155,22 +155,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/change-password', [App\Http\Controllers\Customer\ProfileController::class, 'changePasswordGet']);
     });
     //Room
-    Route::get('rooms', [App\Http\Controllers\Customer\RoomController::class, 'index']);
-    Route::get('rooms/{id}', [App\Http\Controllers\Customer\RoomController::class, 'show']);
+    Route::get('rooms', [App\Http\Controllers\Customer\RoomController::class, 'getAllRooms']);
+    Route::get('rooms/{id}', [App\Http\Controllers\Customer\RoomController::class, 'getRoom']);
 
     //Seat
-    Route::get('rooms/{room_id}/seats', [App\Http\Controllers\Customer\SeatController::class, 'index']);
+    Route::get('rooms/{room_id}/seats', [App\Http\Controllers\Customer\SeatController::class, 'getSeatsByRoom']);
 
     //Showtime
-    Route::get('showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'index']);
-    Route::get('movies/{movie_id}/showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'byMovie']);
+    Route::get('showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimes']);
+    Route::get('movies/{movie_id}/showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimesByMovie']);
 
     //Service
-    Route::get('services', [App\Http\Controllers\Customer\ServiceController::class, 'index']);
-    Route::get('services/{id}', [App\Http\Controllers\Customer\ServiceController::class, 'show']);
+    Route::get('services', [App\Http\Controllers\Customer\ServiceController::class, 'getAllServices']);
+
 
     //Service Order
-    Route::post('service-orders', [App\Http\Controllers\Customer\ServiceOrderController::class, 'store']);
+    Route::post('service-orders', [App\Http\Controllers\Customer\ServiceOrderController::class, 'createServiceOrder']);
 
     //Ticket
     Route::post('/tickets/book', [App\Http\Controllers\Customer\BookTicketController::class, 'bookTicket']);
@@ -194,12 +194,6 @@ Route::prefix('/blogs')->group(function () {
     Route::get('/{id}', [App\Http\Controllers\Customer\BlogController::class, 'show']);
 });
 
-//Showtime
-Route::prefix('showtimes')->group(function () {
-    Route::get('', [App\Http\Controllers\Customer\ShowtimeController::class, 'index']);
-    Route::get('/{id}', [App\Http\Controllers\Customer\ShowtimeController::class, 'show']);
-
-});
 
 
 //Thanh toán ví điện tử
