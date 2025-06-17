@@ -4,24 +4,15 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Showtime;
-use App\Models\Ticket_details;
+use App\Models\Seat;
+
 
 class SeatController extends Controller
 {
-    public function availableByShowtime($id)
+    public function getSeatsByRoom($room_id)
     {
-        $showtime = Showtime::with('room.seats')->findOrFail($id);
-
-        $bookedSeatIds = Ticket_details::where('showtime_id', $id)
-            ->pluck('seat_id')
-            ->toArray();
-
-        $seats = $showtime->room->seats->map(function ($seat) use ($bookedSeatIds) {
-            $seat->is_booked = in_array($seat->id, $bookedSeatIds);
-            return $seat;
-        });
-
+        $seats = Seat::where('room_id', $room_id)->orderBy('seat_row')->orderBy('seat_number')->get();
         return response()->json($seats);
     }
+
 }

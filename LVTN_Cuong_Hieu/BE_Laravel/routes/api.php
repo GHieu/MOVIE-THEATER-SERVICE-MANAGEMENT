@@ -21,6 +21,8 @@ use App\Http\Controllers\Admin\GiftController;
 use App\Http\Controllers\Admin\GifthistoryController;
 use App\Http\Controllers\Admin\ServiceOrderController;
 use App\Http\Controllers\Admin\ReviewController;
+use App\Http\Controllers\Admin\HistoryTicketController;
+
 
 
 
@@ -128,6 +130,11 @@ Route::prefix('admin')->group(function () {
 
         //ServiceOrder
         Route::get('service-orders', [ServiceOrderController::class, 'index']);
+
+        //Ticket
+        Route::get('/admin/tickets/history', [HistoryTicketController::class, 'all']);
+        Route::get('/ticket/{id}', [HistoryTicketController::class, 'show']);
+        Route::get('/tickets/filter', [HistoryTicketController::class, 'filter']);
     });
 });
 
@@ -146,8 +153,31 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [App\Http\Controllers\Customer\ProfileController::class, 'update']);
         Route::post('/change-password', [App\Http\Controllers\Customer\ProfileController::class, 'changePassword']);
         Route::get('/change-password', [App\Http\Controllers\Customer\ProfileController::class, 'changePasswordGet']);
-
     });
+    //Room
+    Route::get('rooms', [App\Http\Controllers\Customer\RoomController::class, 'index']);
+    Route::get('rooms/{id}', [App\Http\Controllers\Customer\RoomController::class, 'show']);
+
+    //Seat
+    Route::get('rooms/{room_id}/seats', [App\Http\Controllers\Customer\SeatController::class, 'index']);
+
+    //Showtime
+    Route::get('showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'index']);
+    Route::get('movies/{movie_id}/showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'byMovie']);
+
+    //Service
+    Route::get('services', [App\Http\Controllers\Customer\ServiceController::class, 'index']);
+    Route::get('services/{id}', [App\Http\Controllers\Customer\ServiceController::class, 'show']);
+
+    //Service Order
+    Route::post('service-orders', [App\Http\Controllers\Customer\ServiceOrderController::class, 'store']);
+
+    //Ticket
+    Route::post('/tickets/book', [App\Http\Controllers\Customer\BookTicketController::class, 'bookTicket']);
+    Route::get('/tickets/history', [App\Http\Controllers\Customer\HistoryTicketController::class, 'history']);
+    Route::get('/ticket/{id}', [App\Http\Controllers\Customer\HistoryTicketController::class, 'show']);
+    Route::delete('/ticket/{id}/cancel', [App\Http\Controllers\Customer\BookTicketController::class, 'cancel']);
+    Route::get('/tickets/filter', [App\Http\Controllers\Customer\BookTicketController::class, 'filter']);
 });
 
 
@@ -170,7 +200,6 @@ Route::prefix('showtimes')->group(function () {
     Route::get('/{id}', [App\Http\Controllers\Customer\ShowtimeController::class, 'show']);
 
 });
-
 
 
 //Thanh toán ví điện tử
