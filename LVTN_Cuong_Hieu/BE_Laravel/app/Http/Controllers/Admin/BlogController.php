@@ -24,11 +24,18 @@ class BlogController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'admin_id' => 'required|exists:admins,id',
-            'title' => 'required|string|max:100',
-            'content' => 'required|string',
-            'image' => 'required|image|max:2048'
+            'admin_id' => 'required|integer|min:1|exists:admins,id', // Kiểu số + số nguyên dương
+            'title' => [
+                'required',
+                'string',
+                'min:5',
+                'max:100',
+                'regex:/^[\pL\s0-9\.,!?-]+$/u' // kiểm tra ký tự cho phép
+            ],
+            'content' => 'required|string|min:10',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
+        ;
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('images', 'public');
@@ -43,9 +50,16 @@ class BlogController extends Controller
     {
         $blog = Blog::findOrFail($id);
         $validated = $request->validate([
-            'title' => 'sometimes|string|max:100',
-            'content' => 'sometimes|string',
-            'image' => 'sometimes|image|max:2048'
+            'title' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:5',
+                'max:100',
+                'regex:/^[\pL\s0-9\.,!?-]+$/u' // giống như trên
+            ],
+            'content' => 'sometimes|required|string|min:10',
+            'image' => 'sometimes|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         if ($request->hasFile('image')) {

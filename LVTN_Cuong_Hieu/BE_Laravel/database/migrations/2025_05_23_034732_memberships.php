@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
             $table->string('member_type', 20);
             $table->integer('point');
+            $table->integer('total_points');
             $table->timestamps();
         });
     }

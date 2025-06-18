@@ -13,7 +13,8 @@ class Membership extends Model
     protected $fillable = [
         'customer_id',
         'member_type',
-        'point'
+        'point',
+        'total_points' // mới thêm để lưu điểm tích lũy
     ];
 
     public function customer()

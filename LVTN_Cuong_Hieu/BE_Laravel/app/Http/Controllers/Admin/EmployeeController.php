@@ -25,11 +25,22 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'position' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'image' => 'required|image|max:2048'
+            'name' => [
+                'required',
+                'string',
+                'min:3',
+                'max:255',
+                'regex:/^[\pL\s]+$/u' // Chỉ chữ và khoảng trắng
+            ],
+            'phone' => [
+                'required',
+                'string',
+                'max:20',
+                'regex:/^(0|\+84)[0-9]{9,10}$/' // Định dạng số điện thoại VN
+            ],
+            'position' => 'required|string|min:3|max:255',
+            'description' => 'nullable|string|max:1000',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         if ($request->hasFile('image')) {
@@ -50,15 +61,15 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'phone' => 'sometimes|required|string|max:20',
-            'position' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'image' => 'sometimes|required|image|max:2048'
+            'name' => 'sometimes|required|string|min:3|max:255|regex:/^[\pL\s]+$/u',
+            'phone' => 'sometimes|required|string|max:20|regex:/^(0|\+84)[0-9]{9,10}$/',
+            'position' => 'sometimes|required|string|min:3|max:255',
+            'description' => 'nullable|string|max:1000',
+            'image' => 'sometimes|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('images')->store('images', 'public');
+            $validated['image'] = $request->file('image')->store('images', 'public');
         }
 
         $employee->update($validated);

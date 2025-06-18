@@ -36,21 +36,23 @@ class MovieController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title' => 'required|string',
-            'description' => 'nullable|string',
-            'duration' => 'required|integer',
-            'genre' => 'required|string',
-            'director' => 'nullable|string',
-            'cast' => 'nullable|string',
-            'poster' => 'nullable|image|max:2048',
-            'banner' => 'nullable|image|max:4096',
+            'title' => 'required|string|min:2|max:255|unique:movies,title',
+            'description' => 'nullable|string|max:2000',
+            'duration' => 'required|integer|min:30|max:300', // phút
+            'genre' => 'required|string|max:100',
+            'director' => 'nullable|string|max:100',
+            'cast' => 'nullable|string|max:255',
+            'nation' => 'nullable|string|max:100',
+            'poster' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'banner' => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
             'age' => 'required|in:P,T13,T16,T18',
-            'trailer_url' => 'nullable|url',
-            'release_date' => 'required|date',
+            'trailer_url' => 'nullable|url|max:255',
+            'release_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:release_date',
             'status' => 'required|boolean',
-            'type' => 'required|in:now_showing,coming_soon',
+            'type' => 'required|in:now_showing,coming_soon,stop_showing',
         ]);
+
 
         if ($request->hasFile('poster')) {
             $validated['poster'] = $request->file('poster')->store('posters', 'public');
@@ -70,21 +72,24 @@ class MovieController extends Controller
         $movie = Movie::findOrFail($id);
 
         $validated = $request->validate([
-            'title' => 'sometimes|required|string',
-            'description' => 'nullable|string',
-            'duration' => 'sometimes|required|integer',
-            'genre' => 'sometimes|required|string',
-            'director' => 'nullable|string',
-            'cast' => 'nullable|string',
-            'poster' => 'nullable|image|max:2048',
-            'banner' => 'nullable|image|max:4096',
+            'title' => 'sometimes|required|string|min:2|max:255',
+            'description' => 'nullable|string|max:2000',
+            'duration' => 'sometimes|required|integer|min:30|max:300',
+            'genre' => 'sometimes|required|string|max:100',
+            'director' => 'nullable|string|max:100',
+            'cast' => 'nullable|string|max:255',
+            'nation' => 'nullable|string|max:100',
+            'poster' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'banner' => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
             'age' => 'required|in:P,T13,T16,T18',
-            'trailer_url' => 'nullable|url',
+            'trailer_url' => 'nullable|url|max:255',
             'release_date' => 'sometimes|required|date',
             'end_date' => 'sometimes|required|date|after_or_equal:release_date',
             'status' => 'sometimes|required|boolean',
-            'type' => 'sometimes|required|in:now_showing,coming_soon',
+            'type' => 'sometimes|required|in:now_showing,coming_soon,stop_showing',
         ]);
+
+
 
         if ($request->hasFile('poster')) {
             $validated['poster'] = $request->file('poster')->store('posters', 'public');
@@ -100,7 +105,11 @@ class MovieController extends Controller
     //Xoá
     public function destroy($id)
     {
+
         $movie = Movie::findOrFail($id);
+        if ($movie->showtimes()->exists()) {
+            return response()->json(['message' => 'Không thể xoá phim đã có suất chiếu'], 400);
+        }
         $movie->delete();
         return response()->json(['message' => 'Xoá ' . $movie->title . ' phim thành công']);
     }

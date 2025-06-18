@@ -18,11 +18,19 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'image' => 'required|image|max:2048',
-            'status' => 'required|boolean'
+            'name' => [
+                'required',
+                'string',
+                'min:3',
+                'max:255',
+                'regex:/^[A-Za-z0-9\s\-]+$/'
+            ],
+            'description' => 'required|string|min:10|max:1000',
+            'price' => 'required|numeric|min:0|max:1000000',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'status' => 'required|boolean',
+        ], [
+            'name.regex' => 'Tên dịch vụ chỉ được chứa chữ cái, số, khoảng trắng và dấu gạch ngang.'
         ]);
 
         if ($request->hasFile('image')) {
@@ -39,13 +47,19 @@ class ServiceController extends Controller
         $service = Service::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|required|string',
-            'price' => 'sometimes|required|numeric|min:0',
-            'image' => 'sometimes|required|image|max:2048',
-            'status' => 'sometimes|required|boolean'
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:3',
+                'max:255',
+                'regex:/^[A-Za-z0-9\s\-]+$/'
+            ],
+            'description' => 'sometimes|required|string|min:10|max:1000',
+            'price' => 'sometimes|required|numeric|min:0|max:1000000',
+            'image' => 'sometimes|required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'status' => 'sometimes|required|boolean',
         ]);
-
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('images', 'public');
         }

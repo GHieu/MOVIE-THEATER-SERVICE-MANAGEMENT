@@ -19,6 +19,7 @@ class GifthistoryController extends Controller
             'gift_id' => 'required|exists:gifts,id',
         ]);
 
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
@@ -27,16 +28,24 @@ class GifthistoryController extends Controller
             $gift = Gift::find($request->gift_id);
             $membership = Membership::where('customer_id', $request->customer_id)->first();
 
+            //Không phải là thành viên
             if (!$membership) {
                 return response()->json(['message' => 'Customer does not have a membership'], 404);
             }
 
+            //Không đủ điểm
             if ($membership->point < $gift->point_required) {
                 return response()->json(['message' => 'Not enough points'], 400);
             }
 
+            //Không đủ số lượng quà
             if ($gift->stock <= 0) {
                 return response()->json(['message' => 'Gift out of stock'], 400);
+            }
+
+            //Thẻ thành viên hết hạn
+            if (Carbon::parse($membership->expired_at)->isPast()) {
+                return response()->json(['message' => 'Membership expired'], 403);
             }
 
             // Trừ điểm và giảm tồn kho

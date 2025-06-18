@@ -5,13 +5,20 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Ticket;
+use Illuminate\Support\Facades\Validator;
 class HistoryTicketController extends Controller
 {
     public function all()
     {
-        $tickets = Ticket::with(['customer', 'showtime.movie', 'showtime.room', 'ticketDetails', 'serviceOrders.service'])
+        $tickets = Ticket::with([
+            'customer:id,name,email',
+            'showtime.movie:id,title',
+            'showtime.room:id,name,type',
+            'ticketDetails',
+            'serviceOrders.service'
+        ])
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate(10); // Phân trang 10 vé mỗi lần
 
         return response()->json($tickets);
     }
@@ -32,6 +39,17 @@ class HistoryTicketController extends Controller
     //Lọc vé theo thời gian
     public function filter(Request $request)
     {
+
+        $validator = Validator::make($request->all(), [
+            'from_date' => 'nullable|date|before_or_equal:to_date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        //Giúp ngăn trường hợp ngày bắt đầu > ngày kết thúc, hoặc ngày không hợp lệ gây lỗi truy vấn.
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
         $query = Ticket::with(['showtime.movie', 'showtime.room']);
 
         // Nếu là Customer, chỉ lọc vé của chính họ

@@ -22,9 +22,21 @@ class ProfileController extends Controller
         $admin = Auth::guard('admin')->user();
 
         $validated = $request->validate([
-            'email' => 'sometimes|email|unique:admins,email,' . $admin->id,
-            'phone' => 'sometimes|string|max:20',
-            'address' => 'sometimes|string'
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                'unique:admins,email,' . $admin->id
+            ],
+            'phone' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:10',
+                'max:20',
+                'regex:/^[0-9+\-\s]+$/'
+            ],
+            'address' => 'sometimes|nullable|string|min:5|max:255'
         ]);
 
         $admin->update($validated);
@@ -39,8 +51,16 @@ class ProfileController extends Controller
     {
         $admin = Auth::guard('admin')->user();
         $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|min:6|confirmed'
+            'current_password' => 'required|string|min:6',
+            'new_password' => [
+                'required',
+                'string',
+                'min:6',
+                'confirmed',
+                'regex:/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}$/'
+            ],
+        ], [
+            'new_password.regex' => 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 chữ số.'
         ]);
 
         if (!Hash::check($request->current_password, $admin->password)) {

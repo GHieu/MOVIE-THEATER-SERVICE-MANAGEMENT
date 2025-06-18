@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->string('genre');
             $table->string('director');
             $table->text('cast');
+            $table->string('nation');
             $table->string('poster');
             $table->string('banner');
             $table->enum('age', ['P', 'T13', 'T16', 'T18']);
@@ -25,7 +26,7 @@ return new class extends Migration {
             $table->date('release_date');
             $table->date('end_date');
             $table->boolean('status');
-            $table->enum('type', ['now_showing', 'coming_soon'])->default('coming_soon');
+            $table->enum('type', ['now_showing', 'coming_soon', 'stop_showing'])->default('coming_soon');
             $table->timestamps();
         });
     }

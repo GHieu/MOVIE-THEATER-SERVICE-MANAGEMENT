@@ -19,10 +19,10 @@ class GiftController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'promotion_id' => 'nullable|exists:promotions,id',
-            'name' => 'required|string|max:50',
-            'description' => 'required|string',
-            'point_required' => 'required|integer|min:1',
-            'stock' => 'required|integer|min:0',
+            'name' => 'required|string|min:3|max:50|regex:/^[\pL\s0-9\.\,\!\?\-]+$/u',
+            'description' => 'required|string|min:10|max:1000',
+            'point_required' => 'required|integer|min:1|max:10000',
+            'stock' => 'required|integer|min:0|max:100000',
         ]);
 
         if ($validator->fails()) {
@@ -43,10 +43,10 @@ class GiftController extends Controller
 
         $validator = Validator::make($request->all(), [
             'promotion_id' => 'nullable|exists:promotions,id',
-            'name' => 'string|max:50',
-            'description' => 'string',
-            'point_required' => 'integer|min:1',
-            'stock' => 'integer|min:0',
+            'name' => 'sometimes|string|min:3|max:50|regex:/^[\pL\s0-9\.\,\!\?\-]+$/u',
+            'description' => 'sometimes|string|min:10|max:1000',
+            'point_required' => 'sometimes|integer|min:1|max:10000',
+            'stock' => 'sometimes|integer|min:0|max:100000',
         ]);
 
         if ($validator->fails()) {
