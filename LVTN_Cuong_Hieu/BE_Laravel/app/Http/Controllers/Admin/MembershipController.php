@@ -17,10 +17,12 @@ class MembershipController extends Controller
     //Thêm
     public function store(Request $request)
     {
+        $types = ['Silver', 'Gold', 'Diamond'];
+
         $validator = Validator::make($request->all(), [
             'customer_id' => 'required|exists:customers,id',
-            'member_type' => 'required|string|max:20',
-            'point' => 'required|integer|min:0',
+            'member_type' => 'required|string|in:' . implode(',', $types),
+            'point' => 'required|integer|min:0|max:100000',
         ]);
 
         if ($validator->fails()) {
@@ -41,9 +43,10 @@ class MembershipController extends Controller
             return response()->json(['message' => 'Membership not found'], 404);
         }
 
+        $types = ['Silver', 'Gold', 'Diamond'];
         $validator = Validator::make($request->all(), [
-            'member_type' => 'nullable|string|max:20',
-            'point' => 'nullable|integer|min:0',
+            'member_type' => 'nullable|string|in:' . implode(',', $types),
+            'point' => 'nullable|integer|min:0|max:100000',
         ]);
 
         if ($validator->fails()) {

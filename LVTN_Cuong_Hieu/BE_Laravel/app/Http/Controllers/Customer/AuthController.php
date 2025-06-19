@@ -13,14 +13,21 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:50',
-            'birthdate' => 'required|date',
-            'gender' => 'required',
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string|max:50',
+            'name' => 'required|string|max:50|regex:/^[\p{L}\s]+$/u', // chỉ cho phép chữ cái và khoảng trắng
+            'birthdate' => 'required|date|before:today', // ngày sinh phải trước hôm nay
+            'gender' => 'required|in:male,female,other', // giới tính hợp lệ
+            'phone' => 'required|regex:/^0[0-9]{9}$/|unique:customers,phone', // SĐT bắt đầu bằng 0 và có 10 số
+            'address' => 'required|string|max:100',
             'email' => 'required|email|unique:customers,email',
-            'password' => 'required|min:6|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:6',
+                'confirmed',
+                'regex:/^(?=.*[A-Z])(?=.*\d).+$/' // ít nhất 1 chữ hoa và 1 số
+            ],
         ]);
+
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
@@ -54,8 +61,14 @@ class AuthController extends Controller
     {
         // 1. Xác thực đầu vào
         $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
+            'email' => 'required|email|max:100', // định dạng email + giới hạn độ dài
+            'password' => [
+                'required',
+                'string',
+                'min:6',        // tối thiểu 6 ký tự
+                'max:70',       // tối đa 70 ký tự
+                'regex:/^[A-Za-z0-9!@#$%^&*()_+=-]+$/', // chỉ cho ký tự hợp lệ
+            ],
         ]);
 
         // 2. Tìm khách hàng theo email

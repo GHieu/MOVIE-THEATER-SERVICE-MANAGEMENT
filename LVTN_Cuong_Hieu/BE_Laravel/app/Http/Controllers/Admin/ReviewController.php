@@ -10,6 +10,10 @@ class ReviewController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate([
+            'movie' => 'nullable|string|max:100',
+            'customer' => 'nullable|string|max:100'
+        ]);
         $query = Review::with('customer:id,name,email', 'movie:id,title');
 
         //Lọc tên phim

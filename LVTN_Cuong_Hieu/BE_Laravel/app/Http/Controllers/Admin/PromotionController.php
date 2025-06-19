@@ -18,14 +18,22 @@ class PromotionController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'discount_percent' => 'required|integer|min:0|max:100',
+            'title' => [
+                'required',
+                'string',
+                'min:5',
+                'max:255',
+                'regex:/^[a-zA-Z0-9\s\-]+$/'
+            ],
+            'description' => 'required|string|min:10|max:1000',
+            'discount_percent' => 'required|numeric|between:0,100',
             'discount_amount' => 'required|numeric|min:0',
-            'apply_to' => 'required|string',
-            'start_date' => 'required|date',
+            'apply_to' => 'required|string|in:ticket,service,gift',
+            'start_date' => 'required|date|before_or_equal:end_date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'status' => 'required|boolean',
+        ], [
+            'title.regex' => 'Tiêu đề chỉ được chứa chữ, số, khoảng trắng và dấu gạch ngang.'
         ]);
 
         if ($validator->fails()) {

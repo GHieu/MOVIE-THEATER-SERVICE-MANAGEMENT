@@ -40,14 +40,13 @@ class ShowtimeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'movie_id' => 'required|exists:movies,id',
-            'room_id' => 'required|exists:rooms,id',
-            'promotion_id' => 'nullable|exists:promotions,id',
-            'start_time' => 'required|date',
+            'movie_id' => 'required|integer|exists:movies,id',
+            'room_id' => 'required|integer|exists:rooms,id',
+            'promotion_id' => 'nullable|integer|exists:promotions,id',
+            'start_time' => 'required|date|after_or_equal:now',
             'end_time' => 'required|date|after:start_time',
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:10000|max:1000000',
         ]);
-
         // Kiểm tra trùng giờ chiếu
         $this->assertNoOverlap(
             roomId: $data['room_id'],
@@ -73,12 +72,12 @@ class ShowtimeController extends Controller
         $showtime = Showtime::findOrFail($id);
 
         $data = $request->validate([
-            'movie_id' => 'required|exists:movies,id',
-            'room_id' => 'required|exists:rooms,id',
-            'promotion_id' => 'nullable|exists:promotions,id',
-            'start_time' => 'required|date',
+            'movie_id' => 'required|integer|exists:movies,id',
+            'room_id' => 'required|integer|exists:rooms,id',
+            'promotion_id' => 'nullable|integer|exists:promotions,id',
+            'start_time' => 'required|date|after_or_equal:now',
             'end_time' => 'required|date|after:start_time',
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:10000|max:1000000',
         ]);
 
         // Kiểm tra trùng giờ (loại trừ chính bản ghi này)

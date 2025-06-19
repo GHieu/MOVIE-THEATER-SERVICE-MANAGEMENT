@@ -22,8 +22,8 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'email' => 'sometimes|email|unique:customers,email,' . $customer->id,
-            'phone' => 'sometimes|string|max:20',
-            'address' => 'sometimes|string|max:255',
+            'phone' => 'sometimes|regex:/^0[0-9]{9}$/|unique:customers,phone,' . $customer->id,
+            'address' => 'sometimes|string|max:100',
         ]);
 
         $customer->update($validated);
@@ -41,7 +41,12 @@ class ProfileController extends Controller
 
         $request->validate([
             'current_password' => 'required',
-            'new_password' => 'required|min:6|confirmed'
+            'new_password' => [
+                'required',
+                'min:6',
+                'confirmed',
+                'regex:/^(?=.*[A-Z])(?=.*\d).+$/'
+            ],
         ]);
 
         if (!Hash::check($request->current_password, $customer->password)) {

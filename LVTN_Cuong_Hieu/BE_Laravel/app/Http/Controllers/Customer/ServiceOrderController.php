@@ -12,7 +12,7 @@ class ServiceOrderController extends Controller
         $validated = $request->validate([
             'ticket_id' => 'required|exists:tickets,id',
             'service_id' => 'required|exists:services,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:10',
             'promotion_id' => 'nullable|exists:promotions,id'
         ]);
 

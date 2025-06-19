@@ -21,9 +21,9 @@ class SeatController extends Controller
         $seat = Seat::findOrFail($id);
 
         $validated = $request->validate([
-            'seat_type' => 'required|in:standard,vip,couple',
-            'price' => 'integer|min:0',
-            'status' => 'in:available,reversed,broken'
+            'seat_type' => 'required|string|in:standard,vip,couple',
+            'price' => 'required|numeric|min:0|max:500000',
+            'status' => 'required|string|in:available,reserved,broken'
         ]);
 
         $seat->update($validated);

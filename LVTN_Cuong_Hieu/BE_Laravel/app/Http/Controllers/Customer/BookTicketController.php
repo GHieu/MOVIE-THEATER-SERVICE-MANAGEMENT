@@ -10,6 +10,7 @@ use App\Models\ServiceOrder;
 use App\Models\Seat;
 use App\Models\Service;
 use App\Models\Showtime;
+use App\Models\Membership;
 use Illuminate\Support\Facades\DB;
 
 class BookTicketController extends Controller
@@ -19,10 +20,10 @@ class BookTicketController extends Controller
         $validated = $request->validate([
             'showtime_id' => 'required|exists:showtimes,id',
             'seats' => 'required|array|min:1',
-            'seats.*' => 'string',
+            'seats.*' => ['required', 'regex:/^[A-Z]{1}[0-9]{1,2}$/'], // ví dụ: A1, B12
             'services' => 'nullable|array',
             'services.*.service_id' => 'required|exists:services,id',
-            'services.*.quantity' => 'required|integer|min:1'
+            'services.*.quantity' => 'required|integer|min:1|max:20',
         ]);
 
         $customer = $request->user(); // Lấy từ auth:sanctum
@@ -77,6 +78,15 @@ class BookTicketController extends Controller
                 'status' => 'paid', // hoặc 'unpaid' nếu chưa thanh toán
             ]);
 
+            // Cộng điểm nếu là thành viên
+            if ($ticket->status === 'paid') {
+                $membership = Membership::where('customer_id', $customer->id)->first();
+                if ($membership) {
+                    $membership->increment('point', 10);
+                    $membership->increment('total_points', 10);
+                }
+            }
+
             // Cập nhật ghế & tạo chi tiết vé
             foreach ($request->seats as $seatCode) {
                 $row = substr($seatCode, 0, 1);
@@ -125,12 +135,19 @@ class BookTicketController extends Controller
     public function cancel($id, Request $request)
     {
         $ticket = Ticket::where('id', $id)
-            ->where('customer_id', $request->user()->id) // Chỉ được huỷ vé của chính mình
+            ->where('customer_id', $request->user()->id)
             ->firstOrFail();
 
-        // Optional: Kiểm tra thời gian suất chiếu chưa diễn ra
         if ($ticket->showtime->start_time < now()) {
             return response()->json(['message' => 'Không thể huỷ vé đã quá thời gian suất chiếu'], 400);
+        }
+
+        // Nếu vé đã thanh toán thì trừ điểm
+        if ($ticket->status === 'paid') {
+            $membership = Membership::where('customer_id', $ticket->customer_id)->first();
+            if ($membership && $membership->point >= 10) {
+                $membership->decrement('point', 10);
+            }
         }
 
         $ticket->delete();
