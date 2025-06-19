@@ -7,7 +7,7 @@ export const fetchRoom = async () => {
 
 // Cập nhật phòng
 export const updateRoom = async (id, roomData) => {
-  const res = await apiAdmin.put(`/rooms/${id}`, roomData); // gửi JSON
+  const res = await apiAdmin.post(`/rooms/${id}`, roomData); // gửi JSON
   return res.data; // trả về object room đã cập nhật
 };
 

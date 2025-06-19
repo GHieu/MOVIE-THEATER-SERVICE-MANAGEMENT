@@ -1,6 +1,6 @@
 import React from 'react';
-import useRooms from '../../hooks/useAdminRooms';
-
+import useRooms from '../../hooks/Admin/useAdminRooms';
+import { Pencil} from "lucide-react";
 const AdminRooms = () => {
   const {
     editingRoom,
@@ -127,7 +127,7 @@ const AdminRooms = () => {
       {!loading && currentRooms.length > 0 ? (
         <>
           <table className="w-full border">
-            <thead className="bg-gray-200">
+            <thead className="bg-gray-200 text-center">
               <tr>
                 <th className="border p-2">Tên phòng</th>
                 <th className="border p-2">Loại</th>
@@ -136,7 +136,7 @@ const AdminRooms = () => {
                 <th className="border p-2">Hành động</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="text-center">
               {currentRooms.map((room) => (
                 <tr key={room.id}>
                   <td className="border p-2">{room.name}</td>
@@ -148,7 +148,7 @@ const AdminRooms = () => {
                       className="text-blue-600"
                       onClick={() => setEditingRoom(room)}
                     >
-                      Sửa
+                      <Pencil size={18} />
                     </button>
                   </td>
                 </tr>
