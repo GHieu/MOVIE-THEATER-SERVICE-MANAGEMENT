@@ -1,16 +1,10 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
-
 import Dashboard from "../../components/admin/Dashboard";
-const AdminLayout = () => {
+
+const AdminLayout = ({ onLogout }) => {
   return (
-    <div className="flex">
-      <div className="flex-1">
-        <Dashboard />
-        <main className="p-4">
-          <Outlet />
-        </main>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <Dashboard onLogout={onLogout} />
     </div>
   );
 };
