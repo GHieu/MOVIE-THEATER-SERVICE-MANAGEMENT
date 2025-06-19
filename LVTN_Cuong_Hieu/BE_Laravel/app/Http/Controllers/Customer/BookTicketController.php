@@ -11,29 +11,33 @@ use App\Models\Seat;
 use App\Models\Service;
 use App\Models\Showtime;
 use App\Models\Membership;
+use App\Models\Promotion;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class BookTicketController extends Controller
 {
+    // Đặt vé
     public function bookTicket(Request $request)
     {
         $validated = $request->validate([
             'showtime_id' => 'required|exists:showtimes,id',
             'seats' => 'required|array|min:1',
-            'seats.*' => ['required', 'regex:/^[A-Z]{1}[0-9]{1,2}$/'], // ví dụ: A1, B12
+            'seats.*' => ['required', 'regex:/^[A-Z]{1}[0-9]{1,2}$/'],
             'services' => 'nullable|array',
             'services.*.service_id' => 'required|exists:services,id',
             'services.*.quantity' => 'required|integer|min:1|max:20',
+            'promotion_id' => 'nullable|exists:promotions,id',
         ]);
 
-        $customer = $request->user(); // Lấy từ auth:sanctum
+        $customer = $request->user();
 
         DB::beginTransaction();
         try {
             $showtime = Showtime::findOrFail($request->showtime_id);
             $room_id = $showtime->room_id;
 
-            // Tính tổng giá ghế
+            // Tính tổng ghế
             $seatTotal = 0;
             foreach ($request->seats as $seatCode) {
                 $row = substr($seatCode, 0, 1);
@@ -44,13 +48,13 @@ class BookTicketController extends Controller
                     ->firstOrFail();
 
                 if ($seat->status !== 'available') {
-                    throw new \Exception("Ghế $seatCode đã được đặt hoặc hỏng.");
+                    throw new \Exception("Ghế $seatCode đã được đặt hoặc bị khoá.");
                 }
 
                 $seatTotal += $seat->price;
             }
 
-            // Tính tổng giá dịch vụ
+            // Tính tổng dịch vụ
             $serviceTotal = 0;
             $servicesData = [];
             if ($request->has('services')) {
@@ -66,17 +70,40 @@ class BookTicketController extends Controller
                 }
             }
 
-            // Tổng tiền
-            $total = $seatTotal + $serviceTotal;
+            // Áp dụng khuyến mãi (nếu có)
+            $discount = 0;
+            $promotion = null;
 
-            // Tạo ticket
+            if ($request->filled('promotion_id')) {
+                $promotion = Promotion::where('id', $request->promotion_id)
+                    ->where('status', 'active')
+                    ->where('start_date', '<=', now())
+                    ->where('end_date', '>=', now())
+                    ->first();
+
+                if ($promotion) {
+                    $amount = $seatTotal + $serviceTotal;
+                    if ($promotion->discount_percent) {
+                        $discount = $amount * $promotion->discount_percent / 100;
+                    } elseif ($promotion->discount_amount) {
+                        $discount = $promotion->discount_amount;
+                    }
+                }
+            }
+
+            $total = max(0, $seatTotal + $serviceTotal - $discount);
+
+            // Tạo vé
             $ticket = Ticket::create([
                 'customer_id' => $customer->id,
                 'showtime_id' => $showtime->id,
+                'promotion_id' => $promotion->id ?? null,
                 'total_price' => $total,
-                'payment_method' => 'cash', // hoặc 'momo' tuỳ hệ thống
-                'status' => 'paid', // hoặc 'unpaid' nếu chưa thanh toán
+                'payment_method' => 'cash',
+                'status' => 'paid',
             ]);
+
+            $customer->notify(new \App\Notifications\TicketBooked($ticket));
 
             // Cộng điểm nếu là thành viên
             if ($ticket->status === 'paid') {
@@ -87,7 +114,7 @@ class BookTicketController extends Controller
                 }
             }
 
-            // Cập nhật ghế & tạo chi tiết vé
+            // Lưu ghế
             foreach ($request->seats as $seatCode) {
                 $row = substr($seatCode, 0, 1);
                 $number = substr($seatCode, 1);
@@ -96,7 +123,6 @@ class BookTicketController extends Controller
                     ->where('seat_number', $number)
                     ->first();
 
-                // Cập nhật trạng thái ghế
                 $seat->status = 'reversed';
                 $seat->save();
 
@@ -107,12 +133,13 @@ class BookTicketController extends Controller
                 ]);
             }
 
-            // Tạo service_order nếu có
+            // Dịch vụ
             foreach ($servicesData as $item) {
                 ServiceOrder::create([
                     'ticket_id' => $ticket->id,
                     'service_id' => $item['service']->id,
-                    'quantity' => $item['quantity']
+                    'quantity' => $item['quantity'],
+                    'promotion_id' => $promotion?->id
                 ]);
             }
 
@@ -131,10 +158,10 @@ class BookTicketController extends Controller
         }
     }
 
-    //Huỷ vé
+    // Huỷ vé
     public function cancel($id, Request $request)
     {
-        $ticket = Ticket::where('id', $id)
+        $ticket = Ticket::with('showtime')->where('id', $id)
             ->where('customer_id', $request->user()->id)
             ->firstOrFail();
 
@@ -142,7 +169,7 @@ class BookTicketController extends Controller
             return response()->json(['message' => 'Không thể huỷ vé đã quá thời gian suất chiếu'], 400);
         }
 
-        // Nếu vé đã thanh toán thì trừ điểm
+        // Trừ điểm nếu đã thanh toán
         if ($ticket->status === 'paid') {
             $membership = Membership::where('customer_id', $ticket->customer_id)->first();
             if ($membership && $membership->point >= 10) {
@@ -152,15 +179,14 @@ class BookTicketController extends Controller
 
         $ticket->delete();
 
-        return response()->json(['message' => 'Đã huỷ vé thành công']);
+        return response()->json(['message' => 'Huỷ vé thành công']);
     }
 
-    //Lọc thời gian
+    // Lọc lịch sử
     public function filter(Request $request)
     {
         $query = Ticket::with(['showtime.movie', 'showtime.room']);
 
-        // Nếu là Customer, chỉ lọc vé của chính họ
         if ($request->user()->tokenCan('customer')) {
             $query->where('customer_id', $request->user()->id);
         }
@@ -168,11 +194,11 @@ class BookTicketController extends Controller
         if ($request->has('from_date')) {
             $query->whereDate('created_at', '>=', $request->from_date);
         }
+
         if ($request->has('to_date')) {
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
         return response()->json($query->orderByDesc('created_at')->get());
     }
-
 }
