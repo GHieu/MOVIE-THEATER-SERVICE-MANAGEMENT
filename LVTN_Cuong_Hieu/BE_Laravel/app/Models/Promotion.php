@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Promotion extends Model
 {
     use HasFactory;
+<<<<<<< Updated upstream
  
+=======
+    public $timestamps = false;
+>>>>>>> Stashed changes
     protected $fillable = [
         'title',
         'description',
