@@ -1,6 +1,6 @@
 // src/hooks/useMovieDetail.js
 import { useEffect, useState } from 'react';
-import { fetchDanhsachMoviesID } from '../services/apiMovies';
+import { fetchMovieById } from '../services/apiMovies';
 
 const useMovieDetail = (id) => {
   const [movie, setMovie] = useState(null);
@@ -15,10 +15,11 @@ const useMovieDetail = (id) => {
       setLoading(true);
       setError('');
       try {
-        const data = await fetchDanhsachMoviesID(id);
+        const data = await fetchMovieById(id);
         const movieWithPoster = {
           ...data,
           poster: data.poster ? `${BASE_URL}${data.poster}` : null,
+          banner: data.banner ? `${BASE_URL}${data.banner}` : null
         };
         setMovie(movieWithPoster);
       } catch (err) {

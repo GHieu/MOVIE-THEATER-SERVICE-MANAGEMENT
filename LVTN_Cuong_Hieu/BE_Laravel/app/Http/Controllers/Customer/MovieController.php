@@ -10,30 +10,26 @@ use Carbon\Carbon;
 class MovieController extends Controller
 {
     public function index(Request $request)
-    {
-        $query = Movie::query();
+{
+    $query = Movie::query();
 
-        // Luôn chỉ hiển thị phim còn chiếu (end_date >= hôm nay)
-        $query->whereDate('end_date', '>=', Carbon::today());
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
 
-        // Mặc định chỉ hiện phim status = 1 (hiển thị)
-        $query->where('status', 1);
-
-        // Nếu có search
         if ($request->has('search')) {
             $query->where('title', 'like', '%' . $request->search . '%');
         }
 
-        // Nếu có lọc theo type (now_showing / coming_soon)
         if ($request->has('type')) {
             $query->where('type', $request->type);
+        } else {
+            // Mặc định chỉ hiện các phim chưa hết chiếu
+            $query->whereDate('end_date', '>=', Carbon::today());
         }
 
-        return response()->json(
-            $query->orderBy('release_date', 'desc')->get()
-        );
+        return response()->json($query->orderBy('release_date', 'desc')->get());
     }
-
 
     //xem chi tiết
     public function show($id)

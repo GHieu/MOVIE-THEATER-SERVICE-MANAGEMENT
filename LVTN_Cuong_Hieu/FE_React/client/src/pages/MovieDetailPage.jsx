@@ -1,56 +1,61 @@
-import React from "react";
+// pages/MovieDetailPage.jsx
+import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import useMovieDetail from '../hooks/useMovieDetail';
-import ShowTimeTabs from "../components/ShowTimeTabs";
+import SidebarNowShowing from "../components/MovieDetail/SidebarNowShowing";
+
+// Import các component mới
+import MovieBanner from "../components/MovieDetail/MovieBanner";
+import TrailerModal from "../components/MovieDetail/TrailerModal";
+import MovieDetailHeader from "../components/MovieDetail/MovieDetailHeader";
+import MovieDescription from "../components/MovieDetail/MovieDescription";
+import MovieShowtime from "../components/MovieDetail/MovieShowtime";
 
 const MovieDetailPage = () => {
-  const { id } = useParams(); // lấy id từ URL
-  const { movie, loading, error } = useMovieDetail(id); // gọi API
+  const { id } = useParams();
+  const { movie, loading, error } = useMovieDetail(id);
+  const [showTrailer, setShowTrailer] = useState(false);
+
+  const handlePlayTrailer = () => setShowTrailer(true);
+  const handleCloseTrailer = () => setShowTrailer(false);
 
   if (loading) return <div className="text-center p-8">Đang tải thông tin phim...</div>;
   if (error || !movie) return <div className="text-center text-red-500 p-8">Không tìm thấy phim.</div>;
 
   return (
-    <div className="p-4 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Poster */}
-        <div className="w-full md:w-1/4 flex-shrink-0">
-          <img
-            src={movie.poster}
-            alt={movie.title}
-            className="w-full rounded-md shadow-md object-cover"
-          />
-        </div>
-
-        {/* Thông tin phim */}
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">{movie.title}</h1>
-          <p className="text-sm text-gray-700 mb-4 leading-relaxed">{movie.description}</p>
-
-          <div className="grid grid-cols-[120px_1fr] gap-y-1 text-sm text-gray-700">
-            <div className="font-medium">ĐẠO DIỄN:</div>
-            <div>{movie.director}</div>
-
-            <div className="font-medium">DIỄN VIÊN:</div>
-            <div>{movie.cast}</div>
-
-            <div className="font-medium">THỂ LOẠI:</div>
-            <div>{movie.genre}</div>
-
-            <div className="font-medium">THỜI LƯỢNG:</div>
-            <div>{movie.duration} phút</div>
-
-            <div className="font-medium">KHỞI CHIẾU:</div>
-            <div>{movie.release_date}</div>
+    <>
+      {/* Banner phim */}
+      <MovieBanner movie={movie} onPlayTrailer={handlePlayTrailer} />
+      
+      {/* Modal trailer */}
+      <TrailerModal 
+        show={showTrailer} 
+        onClose={handleCloseTrailer} 
+        movie={movie} 
+      />
+      
+      {/* Nội dung chính */}
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 px-4 py-6">
+          {/* Cột trái - Thông tin phim */}
+          <div>
+            {/* Header với poster và thông tin cơ bản */}
+            <MovieDetailHeader movie={movie} />
+            
+            {/* Mô tả phim */}
+            <MovieDescription movie={movie} />
+            
+            {/* Lịch chiếu */}
+            <MovieShowtime movieId={movie.id} />
           </div>
+
+          {/* Sidebar */}
+          <aside className="hidden lg:block">
+            <SidebarNowShowing />
+          </aside>
         </div>
       </div>
-
-      {/* Tab suất chiếu */}
-      <div className="container mx-auto px-4 py-6">
-        <ShowTimeTabs movieId={movie.id} />
-      </div>
-    </div>
+    </>
   );
 };
 
