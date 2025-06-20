@@ -23,14 +23,14 @@ class ServiceController extends Controller
                 'string',
                 'min:3',
                 'max:255',
-                'regex:/^[A-Za-z0-9\s\-]+$/'
+                'regex:/^[\p{L}\p{N}\s]+$/u',
             ],
             'description' => 'required|string|min:10|max:1000',
             'price' => 'required|numeric|min:0|max:1000000',
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'status' => 'required|boolean',
         ], [
-            'name.regex' => 'Tên dịch vụ chỉ được chứa chữ cái, số, khoảng trắng và dấu gạch ngang.'
+            'name.regex' => 'Tên dịch vụ chỉ được chứa chữ cái, số, khoảng trắng.'
         ]);
 
         if ($request->hasFile('image')) {
@@ -53,7 +53,7 @@ class ServiceController extends Controller
                 'string',
                 'min:3',
                 'max:255',
-                'regex:/^[A-Za-z0-9\s\-]+$/'
+                'regex:/^[\p{L}\p{N}\s]+$/u',
             ],
             'description' => 'sometimes|required|string|min:10|max:1000',
             'price' => 'sometimes|required|numeric|min:0|max:1000000',
