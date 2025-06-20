@@ -39,17 +39,21 @@ const ShowTimeTabs = () => {
 
       let label;
       if (isToday) {
-        label = "Hôm nay";
+        // Hiển thị "Hôm nay - DD/M" (ví dụ: "Hôm nay - 20/6")
+       
+        label = `Hôm Nay `;
       } else if (isTomorrow) {
-        label = "Ngày mai";
+        label = "Ngày Mai";
       } else {
-        label = date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+        // Đối với các ngày khác, lấy ngày/tháng và thứ
+        
+        label = `${["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"][date.getDay()]} `;
       }
 
       return {
         key: dateStr, // YYYY-MM-DD format
         label: label,
-        weekday: ["CN", "T2", "T3", "T4", "T5", "T6", "T7"][date.getDay()],
+        weekday: date.toLocaleDateString("vi-VN", { day: "2-digit", month: "numeric" }), // Giữ weekday để debug hoặc sử dụng khác
         dateObj: date, // Để sắp xếp
         isToday: isToday,
         isTomorrow: isTomorrow
@@ -78,19 +82,19 @@ const ShowTimeTabs = () => {
 
     // Lọc và sắp xếp các ngày
     const sortedDateKeys = Object.keys(grouped)
-      .filter(dateStr => isValidDate(dateStr)) // Lọc ra các ngày hợp lệ
-      .sort((a, b) => new Date(a) - new Date(b)); // Sắp xếp theo thứ tự tăng dần
+      .filter(dateStr => isValidDate(dateStr))
+      .sort((a, b) => new Date(a) - new Date(b));
 
     console.log('Sorted date keys:', sortedDateKeys);
 
     const dates = sortedDateKeys
       .map(dateStr => formatDateForDisplay(dateStr))
-      .filter(dateInfo => dateInfo !== null) // Lọc ra các dateInfo null
-      .sort((a, b) => a.dateObj - b.dateObj); // Sắp xếp theo thứ tự tăng dần
+      .filter(dateInfo => dateInfo !== null)
+      .sort((a, b) => a.dateObj - b.dateObj);
 
     console.log('Available dates:', dates);
     return dates;
-  }, [showtimes]); // Chỉ phụ thuộc vào showtimes
+  }, [showtimes]);
 
   // Load suất chiếu theo movieId - chỉ chạy khi movieId thay đổi
   useEffect(() => {
@@ -98,17 +102,15 @@ const ShowTimeTabs = () => {
       console.log('Loading showtimes for movie:', movieId);
       loadShowtimesByMovie(movieId);
     }
-  }, [movieId]); // Bỏ loadShowtimesByMovie khỏi dependency để tránh lặp
+  }, [movieId]);
 
   // Tự động chọn ngày đầu tiên (ưu tiên hôm nay) khi có dữ liệu
   useEffect(() => {
     if (availableDates.length > 0 && !selectedDate) {
-      // Tìm ngày hôm nay trước
       const todayDate = availableDates.find(date => date.isToday);
       if (todayDate) {
         setSelectedDate(todayDate.key);
       } else {
-        // Nếu không có hôm nay, chọn ngày đầu tiên
         setSelectedDate(availableDates[0].key);
       }
     }
@@ -143,7 +145,6 @@ const ShowTimeTabs = () => {
       const timeA = new Date(a.start_time || a.show_time);
       const timeB = new Date(b.start_time || b.show_time);
       
-      // Nếu có lỗi parse date, đặt về cuối danh sách
       if (isNaN(timeA.getTime())) return 1;
       if (isNaN(timeB.getTime())) return -1;
       
@@ -162,33 +163,30 @@ const ShowTimeTabs = () => {
       const showtimeDate = new Date(showtime.start_time || showtime.show_time);
       console.log('Showtime:', showtime.start_time || showtime.show_time, 'Parsed date:', showtimeDate, 'Is future?', showtimeDate > now);
       
-      // Kiểm tra nếu parse date thất bại
       if (isNaN(showtimeDate.getTime())) {
         console.warn('Invalid showtime date:', showtime.start_time || showtime.show_time);
-        return true; // Giữ lại nếu không parse được
+        return true;
       }
       
-      // Thêm buffer 30 phút để không ẩn suất chiếu sắp bắt đầu
-      const bufferTime = 30 * 60 * 1000; // 30 phút tính bằng milliseconds
+      const bufferTime = 30 * 60 * 1000; // 30 phút
       return showtimeDate.getTime() > (now.getTime() - bufferTime);
     });
   };
 
   // Xử lý khi click vào suất chiếu
   const handleClickShowtime = (showtime) => {
-  if (!showtime.id) return;
+    if (!showtime.id) return;
 
-  navigate(`/booking/${movieId}`, {
-    state: {
-      date: selectedDate,
-      time: showtime.start_time || showtime.show_time,
-      showtime,
-    },
-  });
-};
+    navigate(`/booking/${movieId}`, {
+      state: {
+        date: selectedDate,
+        time: showtime.start_time || showtime.show_time,
+        showtime,
+      },
+    });
+  };
 
-
-  // Memoize suất chiếu được sắp xếp để tránh tính toán lại không cần thiết
+  // Memoize suất chiếu được sắp xếp
   const sortedShowtimes = useMemo(() => {
     const grouped = groupShowtimesByDate();
     const selectedDateInfo = availableDates.find(date => date.key === selectedDate);
@@ -197,8 +195,7 @@ const ShowTimeTabs = () => {
     console.log('Showtimes for selected date:', selectedDate, showtimesForSelectedDate);
     console.log('Selected date info:', selectedDateInfo);
     
-    // TẠM THỜI TẮT FILTER CHO HÔM NAY ĐỂ DEBUG
-    // const filteredShowtimes = filterShowtimesForToday(showtimesForSelectedDate, selectedDateInfo?.isToday);
+    // Tạm thời tắt filter cho hôm nay để debug
     const filteredShowtimes = showtimesForSelectedDate; // Hiển thị tất cả suất chiếu
     
     console.log('Filtered showtimes:', filteredShowtimes);

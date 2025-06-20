@@ -17,7 +17,7 @@ const BookingShowInfo = ({
           <span className="font-semibold">Phim:</span> {movieInfo.title}
         </div>
         <div>
-          <span className="font-semibold">Rạp:</span> {currentShowtime.cinema?.name || "Galaxy Nguyễn Du"}
+          <span className="font-semibold">Rạp:</span> {currentShowtime.cinema?.name || "AbsoluteCinema"}
         </div>
         <div>
           <span className="font-semibold">Phòng:</span> {currentShowtime.room?.name || `Phòng ${currentShowtime.room_id}`}

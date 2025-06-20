@@ -3,7 +3,7 @@ import { fetchMovies, addMovie, updateMovie, deleteMovie } from '../../services/
 
 const defaultMovie = {
   title: '', description: '', duration: '', genre: '',
-  director: '', cast: '', poster: '', banner: '',
+  director: '', cast: '', nation: '', poster: '', banner: '',
   trailer_url: '', release_date: '', end_date: '',
   status: 0, age: '', type: ''
 };
@@ -146,6 +146,7 @@ const useMovies = () => {
     formData.append('genre', movie.genre || '');
     formData.append('director', movie.director || '');
     formData.append('cast', movie.cast || '');
+    formData.append('nation', movie.nation || '');
     formData.append('trailer_url', movie.trailer_url || '');
     formData.append('release_date', movie.release_date || '');
     formData.append('end_date', movie.end_date || '');

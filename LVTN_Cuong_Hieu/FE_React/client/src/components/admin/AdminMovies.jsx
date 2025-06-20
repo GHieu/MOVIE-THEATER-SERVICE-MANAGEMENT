@@ -46,7 +46,7 @@ const AdminMovies = () => {
     setEditingMovie(null);
     setNewMovie({
       title: '', description: '', duration: '', genre: '',
-      director: '', cast: '', poster: '', banner: '',
+      director: '', cast: '', nation: '', poster: '', banner: '',
       trailer_url: '', release_date: '', end_date: '',
       status: 0, age: '', type: ''
     });
@@ -177,6 +177,7 @@ const AdminMovies = () => {
               { name: 'genre', placeholder: 'Thể loại *', required: true },
               { name: 'director', placeholder: 'Đạo diễn *', required: true },
               { name: 'cast', placeholder: 'Diễn viên', required: false },
+              { name: 'nation', placeholder: 'Quốc gia', required: false },
               { name: 'trailer_url', placeholder: 'Trailer URL', required: false },
             ].map((field) => (
               <input
@@ -394,6 +395,7 @@ const AdminMovies = () => {
                       </td>
                       <td className="px-4 py-4">
                         <div className="text-sm text-gray-900">
+                          <div>Quốc gia: {movie.nation}</div>
                           <div>Đạo diễn: {movie.director}</div>
                           <div>Độ tuổi: {movie.age}</div>
                           <div>Khởi chiếu: {movie.release_date}</div>

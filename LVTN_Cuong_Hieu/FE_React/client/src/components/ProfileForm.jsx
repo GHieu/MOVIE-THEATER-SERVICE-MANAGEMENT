@@ -17,6 +17,18 @@ const ProfileForm = ({ profile, onSave, loading, onOpenPasswordModal }) => {
     
     return errors;
   };
+  const getGenderDisplayText = (gender) => {
+    switch(gender) {
+      case 'male':
+        return 'Nam';
+      case 'female':
+        return 'Nữ';
+      case 'other':
+        return 'Khác';
+      default:
+        return gender || '';
+    }
+  };
 
   const {
     values,
@@ -30,6 +42,7 @@ const ProfileForm = ({ profile, onSave, loading, onOpenPasswordModal }) => {
   } = useForm({
     email: '',
     phone: '',
+    gender: '',
     address: ''
   }, validate);
 
@@ -38,7 +51,9 @@ const ProfileForm = ({ profile, onSave, loading, onOpenPasswordModal }) => {
       setValues({
         email: profile.email || '',
         phone: profile.phone || '',
+        gender: profile.gender || '',
         address: profile.address || ''
+
       });
     }
   }, [profile, setValues]);
@@ -161,27 +176,14 @@ const ProfileForm = ({ profile, onSave, loading, onOpenPasswordModal }) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Giới tính</label>
-            <div className="flex space-x-6 mt-2">
-              <label className="flex items-center">
-                <input 
-                  type="radio" 
-                  name="gender" 
-                  value="Nam"
-                  defaultChecked={profile?.gender === 'Nam'}
-                  className="mr-2"
-                />
-                Nam
-              </label>
-              <label className="flex items-center">
-                <input 
-                  type="radio" 
-                  name="gender" 
-                  value="Nữ"
-                  defaultChecked={profile?.gender === 'Nữ'}
-                  className="mr-2"
-                />
-                Nữ
-              </label>
+            <div className="relative">
+            <input
+              type="gender"
+              value={getGenderDisplayText(values.gender)}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 pr-20"
+            />
+            
             </div>
           </div>
         </div>
