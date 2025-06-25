@@ -132,7 +132,7 @@ Route::prefix('admin')->group(function () {
         Route::get('service-orders', [ServiceOrderController::class, 'index']);
 
         //Ticket
-        Route::get('/admin/tickets/history', [HistoryTicketController::class, 'all']);
+        Route::get('/tickets/history', [HistoryTicketController::class, 'all']);
         Route::get('/ticket/{id}', [HistoryTicketController::class, 'show']);
         Route::get('/tickets/filter', [HistoryTicketController::class, 'filter']);
     });

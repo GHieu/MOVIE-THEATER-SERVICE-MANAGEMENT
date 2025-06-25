@@ -14,7 +14,7 @@ class HistoryTicketController extends Controller
             'customer:id,name,email',
             'showtime.movie:id,title',
             'showtime.room:id,name,type',
-            'ticketDetails',
+            'details',
             'serviceOrders.service'
         ])
             ->orderByDesc('created_at')
@@ -29,7 +29,7 @@ class HistoryTicketController extends Controller
             'customer:id,name,email',
             'showtime.movie:id,title,duration',
             'showtime.room:id,name,type',
-            'ticketDetails',
+            'details',
             'serviceOrders.service'
         ])->findOrFail($id);
 

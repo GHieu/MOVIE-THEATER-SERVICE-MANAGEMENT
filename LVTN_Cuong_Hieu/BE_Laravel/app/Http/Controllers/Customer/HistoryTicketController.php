@@ -10,7 +10,7 @@ class HistoryTicketController extends Controller
 {
     public function history(Request $request)
     {
-        $tickets = Ticket::with(['showtime.movie', 'showtime.room', 'ticketDetails', 'serviceOrders.service'])
+        $tickets = Ticket::with(['showtime.movie', 'showtime.room', 'details', 'serviceOrders.service'])
             ->where('customer_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->get();
