@@ -5,16 +5,87 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Ticket;
-
+use Illuminate\Support\Facades\Validator;
+use App\Models\Membership;
 class HistoryTicketController extends Controller
 {
     public function history(Request $request)
     {
-        $tickets = Ticket::with(['showtime.movie', 'showtime.room', 'ticketDetails', 'serviceOrders.service'])
+        $tickets = Ticket::with(['showtime.movie', 'showtime.room', 'details', 'serviceOrders.service'])
             ->where('customer_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->get();
 
         return response()->json($tickets);
+    }
+
+    public function show($id)
+    {
+        $ticket = Ticket::with([
+            'customer:id,name,email',
+            'showtime.movie:id,title,duration',
+            'showtime.room:id,name,type',
+            'details',
+            'serviceOrders.service'
+        ])->findOrFail($id);
+
+        return response()->json($ticket);
+    }
+
+
+    // Huỷ vé
+    public function cancel($id, Request $request)
+    {
+        $ticket = Ticket::with('showtime')->where('id', $id)
+            ->where('customer_id', $request->user()->id)
+            ->firstOrFail();
+
+        if ($ticket->showtime->start_time < now()) {
+            return response()->json(['message' => 'Không thể huỷ vé đã quá thời gian suất chiếu'], 400);
+        }
+
+        // Trừ điểm nếu đã thanh toán
+        if ($ticket->status === 'paid') {
+            $membership = Membership::where('customer_id', $ticket->customer_id)->first();
+            if ($membership && $membership->point >= 10) {
+                $membership->decrement('point', 10);
+            }
+        }
+
+        $ticket->delete();
+
+        return response()->json(['message' => 'Huỷ vé thành công']);
+    }
+
+
+    //Lọc vé theo thời gian
+    public function filter(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            'from_date' => 'nullable|date|before_or_equal:to_date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        //Giúp ngăn trường hợp ngày bắt đầu > ngày kết thúc, hoặc ngày không hợp lệ gây lỗi truy vấn.
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $query = Ticket::with(['showtime.movie', 'showtime.room']);
+
+        // Nếu là Customer, chỉ lọc vé của chính họ
+        if ($request->user()->tokenCan('customer')) {
+            $query->where('customer_id', $request->user()->id);
+        }
+
+        if ($request->has('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+        if ($request->has('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        return response()->json($query->orderByDesc('created_at')->get());
     }
 }

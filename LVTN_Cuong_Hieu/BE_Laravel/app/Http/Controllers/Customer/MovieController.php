@@ -15,8 +15,10 @@ class MovieController extends Controller
 
 
 
+
         // Luôn chỉ hiển thị phim còn chiếu (end_date >= hôm nay)
         $query->whereDate('end_date', '>=', Carbon::today());
+
 
 
         // Mặc định chỉ hiện phim status = 1 (hiển thị)
@@ -35,6 +37,7 @@ class MovieController extends Controller
         return response()->json(
             $query->orderBy('release_date', 'desc')->get()
         );
+
 
 
     if ($request->has('status')) {
