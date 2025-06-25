@@ -161,25 +161,44 @@ class BookTicketController extends Controller
     // Huỷ vé
     public function cancel($id, Request $request)
     {
-        $ticket = Ticket::with('showtime')->where('id', $id)
+        $ticket = Ticket::with(['showtime', 'details', 'serviceOrders'])->where('id', $id)
             ->where('customer_id', $request->user()->id)
             ->firstOrFail();
 
-        if ($ticket->showtime->start_time < now()) {
+        // Kiểm tra thời gian suất chiếu
+        if ($ticket->showtime->start_time <= now()) {
             return response()->json(['message' => 'Không thể huỷ vé đã quá thời gian suất chiếu'], 400);
         }
 
-        // Trừ điểm nếu đã thanh toán
-        if ($ticket->status === 'paid') {
-            $membership = Membership::where('customer_id', $ticket->customer_id)->first();
-            if ($membership && $membership->point >= 10) {
-                $membership->decrement('point', 10);
+        DB::beginTransaction();
+        try {
+            // Trừ điểm nếu đã thanh toán
+            if ($ticket->status === 'paid') {
+                $membership = Membership::where('customer_id', $ticket->customer_id)->first();
+                if ($membership && $membership->point >= 10) {
+                    $membership->decrement('point', 10);
+                }
             }
+
+            // Trả ghế về available
+            foreach ($ticket->details as $detail) {
+                $seat = Seat::where('room_id', $ticket->showtime->room_id)
+                    ->whereRaw("CONCAT(seat_row, seat_number) = ?", [$detail->seat_number])
+                    ->first();
+
+                if ($seat) {
+                    $seat->status = 'available';
+                    $seat->save();
+                }
+            }
+            $ticket->delete();
+
+            DB::commit();
+            return response()->json(['message' => 'Huỷ vé thành công']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Lỗi khi huỷ vé: ' . $e->getMessage()], 500);
         }
-
-        $ticket->delete();
-
-        return response()->json(['message' => 'Huỷ vé thành công']);
     }
 
     // Lọc lịch sử
