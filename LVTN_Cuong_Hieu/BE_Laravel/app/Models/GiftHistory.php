@@ -13,7 +13,8 @@ class GiftHistory extends Model
     protected $fillable = [
         'customer_id',
         'gift_id',
-        'exchanged_at'
+        'exchanged_at',
+        'image'
     ];
 
     public function customer()

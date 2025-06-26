@@ -4,7 +4,8 @@ namespace App\Services;
 
 use GuzzleHttp\Client;
 use Illuminate\Support\Str;
-
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 class MoMoService
 {
     private $partnerCode;
@@ -22,23 +23,42 @@ class MoMoService
         $this->endpoint = config('services.momo.endpoint');
         $this->redirectUrl = config('services.momo.redirect_url');
         $this->ipnUrl = config('services.momo.ipn_url');
+
+        // Debug config values
+        Log::info('MoMo Config:', [
+            'partnerCode' => $this->partnerCode,
+            'accessKey' => $this->accessKey,
+            'secretKey' => $this->secretKey ? 'SET' : 'NOT SET',
+            'endpoint' => $this->endpoint,
+            'redirectUrl' => $this->redirectUrl,
+            'ipnUrl' => $this->ipnUrl,
+        ]);
     }
 
-    public function createPayment($orderInfo, $amount, $orderId = null)
+    public function createPayment($orderInfo, $amount)
     {
-        $orderId = $orderId ?: Str::uuid()->toString();
-        $requestId = Str::uuid()->toString();
+        // Validate config
+        if (!$this->partnerCode || !$this->accessKey || !$this->secretKey) {
+            Log::error('MoMo config missing');
+            throw new \Exception('MoMo configuration is incomplete');
+        }
 
+        $orderId = time() . '_' . uniqid();
+        $requestId = time() . '_' . uniqid();
+        $requestType = "captureWallet";
+        $extraData = "";
+
+        // Create signature
         $rawHash = "accessKey=" . $this->accessKey .
             "&amount=" . $amount .
-            "&extraData=" .
+            "&extraData=" . $extraData .
             "&ipnUrl=" . $this->ipnUrl .
             "&orderId=" . $orderId .
             "&orderInfo=" . $orderInfo .
             "&partnerCode=" . $this->partnerCode .
             "&redirectUrl=" . $this->redirectUrl .
             "&requestId=" . $requestId .
-            "&requestType=payWithATM";
+            "&requestType=" . $requestType;
 
         $signature = hash_hmac("sha256", $rawHash, $this->secretKey);
 
@@ -53,20 +73,39 @@ class MoMoService
             'redirectUrl' => $this->redirectUrl,
             'ipnUrl' => $this->ipnUrl,
             'lang' => 'vi',
-            'extraData' => '',
-            'requestType' => 'payWithATM',
+            'extraData' => $extraData,
+            'requestType' => $requestType,
             'signature' => $signature
         ];
 
-        $client = new Client();
-        $response = $client->post($this->endpoint, [
-            'json' => $data,
-            'headers' => [
-                'Content-Type' => 'application/json'
-            ]
-        ]);
+        Log::info('MoMo Request Data:', $data);
+        Log::info('MoMo Raw Hash:', ['rawHash' => $rawHash]);
 
-        return json_decode($response->getBody(), true);
+        try {
+            // Tạm thời disable SSL verification cho development
+            $response = Http::withoutVerifying()
+                ->timeout(30)
+                ->post($this->endpoint, $data);
+
+            Log::info('MoMo Response Status:', ['status' => $response->status()]);
+            Log::info('MoMo Response Body:', $response->json() ?? $response->body());
+
+            if ($response->successful()) {
+                return $response->json();
+            } else {
+                Log::error('MoMo API Error Response:', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                throw new \Exception('MoMo API returned error: ' . $response->status());
+            }
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('MoMo Connection Error: ' . $e->getMessage());
+            throw new \Exception('Cannot connect to MoMo API: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('MoMo API Error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     public function verifySignature($data)
