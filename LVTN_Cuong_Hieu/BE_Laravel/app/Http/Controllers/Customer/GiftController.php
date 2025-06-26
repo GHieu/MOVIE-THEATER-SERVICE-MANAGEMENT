@@ -47,8 +47,10 @@ class GiftController extends Controller
             $history = GiftHistory::create([
                 'customer_id' => $customerId,
                 'gift_id' => $gift->id,
-                'exchanged_at' => Carbon::now()
+                'exchanged_at' => Carbon::now(),
+                'image' => $gift->image
             ]);
+
 
             return response()->json([
                 'message' => 'Đổi quà thành công',

@@ -33,31 +33,6 @@ class HistoryTicketController extends Controller
     }
 
 
-    // Huỷ vé
-    public function cancel($id, Request $request)
-    {
-        $ticket = Ticket::with('showtime')->where('id', $id)
-            ->where('customer_id', $request->user()->id)
-            ->firstOrFail();
-
-        if ($ticket->showtime->start_time < now()) {
-            return response()->json(['message' => 'Không thể huỷ vé đã quá thời gian suất chiếu'], 400);
-        }
-
-        // Trừ điểm nếu đã thanh toán
-        if ($ticket->status === 'paid') {
-            $membership = Membership::where('customer_id', $ticket->customer_id)->first();
-            if ($membership && $membership->point >= 10) {
-                $membership->decrement('point', 10);
-            }
-        }
-
-        $ticket->delete();
-
-        return response()->json(['message' => 'Huỷ vé thành công']);
-    }
-
-
     //Lọc vé theo thời gian
     public function filter(Request $request)
     {

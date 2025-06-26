@@ -55,10 +55,21 @@ class GifthistoryController extends Controller
             $history = GiftHistory::create([
                 'customer_id' => $request->customer_id,
                 'gift_id' => $request->gift_id,
-                'exchanged_at' => Carbon::now()
+                'exchanged_at' => Carbon::now(),
+                'image' => $gift->image
             ]);
 
-            return response()->json(['message' => 'Gift exchanged successfully', 'history' => $history], 200);
+            return response()->json([
+                'message' => 'Gift exchanged successfully',
+                'history' => $history,
+                'gift' => [
+                    'id' => $gift->id,
+                    'name' => $gift->name,
+                    'image' => $gift->image,
+                    'image_url' => $gift->image ? asset('storage/' . $gift->image) : null
+                ]
+            ], 200);
+
         });
     }
 }

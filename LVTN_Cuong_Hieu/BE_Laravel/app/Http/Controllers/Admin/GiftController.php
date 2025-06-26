@@ -23,10 +23,15 @@ class GiftController extends Controller
             'description' => 'required|string|min:10|max:1000',
             'point_required' => 'required|integer|min:1|max:10000',
             'stock' => 'required|integer|min:0|max:100000',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('images', 'public');
         }
 
         $gift = Gift::create($request->all());
@@ -47,6 +52,7 @@ class GiftController extends Controller
             'description' => 'sometimes|string|min:10|max:1000',
             'point_required' => 'sometimes|integer|min:1|max:10000',
             'stock' => 'sometimes|integer|min:0|max:100000',
+            'image' => 'sometimes|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         if ($validator->fails()) {

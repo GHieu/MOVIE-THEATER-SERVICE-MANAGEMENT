@@ -13,7 +13,8 @@ class Gift extends Model
         'name',
         'description',
         'point_required',
-        'stock'
+        'stock',
+        'image'
     ];
 
     public function giftHistories()

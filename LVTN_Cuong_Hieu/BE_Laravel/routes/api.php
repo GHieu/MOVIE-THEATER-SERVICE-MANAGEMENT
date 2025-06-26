@@ -197,8 +197,16 @@ Route::prefix('/blogs')->group(function () {
 
 
 //Thanh toán ví điện tử
-Route::get('/payment/return', [PaymentController::class, 'handleReturn']);
-Route::post('/payment/notify', [PaymentController::class, 'handleNotify']);
+use App\Http\Controllers\MoMoController;
 
-Route::get('/payment/success', fn(Request $r) => 'Thanh toán thành công, Order: ' . $r->get('orderId'));
-Route::get('/payment/failure', fn(Request $r) => 'Thanh toán thất bại hoặc bị huỷ');
+// Route::post('/momo/create-payment', [MoMoController::class, 'createPayment'])->name('momo.create');
+// Route::get('/momo/callback', [MoMoController::class, 'callback'])->name('momo.callback');
+// Route::post('/momo/ipn', [MoMoController::class, 'ipn'])->name('momo.ipn');
+// Route::get('/momo/test-config', [MoMoController::class, 'testConfig'])->name('momo.test'); // Test endpoint
+
+
+Route::middleware('api')->group(function () {
+    // MoMo API endpoints
+    Route::post('/momo/create-payment', [MoMoController::class, 'createPaymentApi'])->name('momo.api.create');
+    Route::get('/momo/test-config', [MoMoController::class, 'testConfig'])->name('momo.test.config');
+});

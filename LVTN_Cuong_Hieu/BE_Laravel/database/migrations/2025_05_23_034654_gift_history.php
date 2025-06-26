@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
             $table->foreignId('gift_id')->constrained('gifts')->onDelete('cascade');
             $table->dateTime('exchanged_at');
+            $table->string('image');
             $table->timestamps();
         });
     }
