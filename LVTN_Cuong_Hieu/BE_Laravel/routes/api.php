@@ -178,6 +178,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ticket/{id}', [App\Http\Controllers\Customer\HistoryTicketController::class, 'show']);
     Route::delete('/ticket/{id}/cancel', [App\Http\Controllers\Customer\BookTicketController::class, 'cancel']);
     Route::get('/tickets/filter', [App\Http\Controllers\Customer\BookTicketController::class, 'filter']);
+
+    //Review
+    Route::prefix('/reviews')->group(function () {
+        Route::get('/', [App\Http\Controllers\Customer\ReviewController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Customer\ReviewController::class, 'store']);
+    });
 });
 
 
