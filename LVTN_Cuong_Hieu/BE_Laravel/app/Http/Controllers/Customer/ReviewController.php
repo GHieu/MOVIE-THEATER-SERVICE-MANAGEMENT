@@ -17,10 +17,11 @@ class ReviewController extends Controller
         $reviews = Review::with('movie:id,title')
             ->where('customer_id', $customerId)
             ->orderByDesc('created_at')
-            ->paginate(10);
+            ->get(); // Lấy tất cả thay vì phân trang
 
         return response()->json($reviews);
     }
+
 
     public function store(Request $request)
     {
