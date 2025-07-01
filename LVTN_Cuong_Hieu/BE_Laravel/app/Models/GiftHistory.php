@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class GiftHistory extends Model
 {
     use HasFactory;
+    protected $table = 'gift_history'; // ← THÊM DÒNG NÀY
 
     public $timestamps = false;
 

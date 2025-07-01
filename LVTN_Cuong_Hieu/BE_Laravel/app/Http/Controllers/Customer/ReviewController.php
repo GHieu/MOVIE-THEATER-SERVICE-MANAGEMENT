@@ -12,22 +12,21 @@ class ReviewController extends Controller
 {
     public function index()
     {
-        $customerId = Auth::guard('customer')->id();
-
-        $reviews = Review::with('movie:id,title')
-            ->where('customer_id', $customerId)
+        $reviews = Review::with('movie:id,title', 'customer:id,name') // nếu muốn có tên người dùng
             ->orderByDesc('created_at')
-            ->get(); // Lấy tất cả thay vì phân trang
+            ->get(); // lấy tất cả
 
         return response()->json($reviews);
     }
+
+
 
 
     public function store(Request $request)
     {
         $request->validate([
             'movie_id' => 'required|exists:movies,id',
-            'rating' => 'required|numeric|min:1|max:5',
+            'rating' => 'required|numeric|min:1|max:10',
         ]);
 
         $customerId = Auth::guard('customer')->id();
