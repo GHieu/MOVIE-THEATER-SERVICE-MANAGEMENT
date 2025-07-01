@@ -21,4 +21,8 @@ class Gift extends Model
     {
         return $this->hasMany(GiftHistory::class);
     }
+    public function promotion()
+    {
+        return $this->belongsTo(Promotion::class);
+    }
 }

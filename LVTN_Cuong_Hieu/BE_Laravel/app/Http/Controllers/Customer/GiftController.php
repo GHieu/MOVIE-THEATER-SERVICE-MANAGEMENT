@@ -12,6 +12,18 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 class GiftController extends Controller
 {
+    public function index()
+    {
+        $gifts = Gift::with('promotion')
+            ->where('stock', '>', 0)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($gifts);
+    }
+
+
+
     public function exchange(Request $request)
     {
         $request->validate([

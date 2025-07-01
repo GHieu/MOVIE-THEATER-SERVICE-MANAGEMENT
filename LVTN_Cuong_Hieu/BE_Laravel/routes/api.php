@@ -126,7 +126,7 @@ Route::prefix('admin')->group(function () {
         });
 
         //GiftHistory
-        Route::post('gifthistory', [GifthistoryController::class, 'exchange']);
+        Route::get('/gift-history', [GiftHistoryController::class, 'index']);
 
         //ServiceOrder
         Route::get('service-orders', [ServiceOrderController::class, 'index']);
@@ -161,9 +161,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //Seat
     Route::get('rooms/{room_id}/seats', [App\Http\Controllers\Customer\SeatController::class, 'getSeatsByRoom']);
 
-    //Showtime
-    Route::get('showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimes']);
-    Route::get('movies/{movie_id}/showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimesByMovie']);
+
 
     //Service
     Route::get('services', [App\Http\Controllers\Customer\ServiceController::class, 'getAllServices']);
@@ -181,11 +179,29 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Review
     Route::prefix('/reviews')->group(function () {
-        Route::get('/', [App\Http\Controllers\Customer\ReviewController::class, 'index']);
         Route::post('/', [App\Http\Controllers\Customer\ReviewController::class, 'store']);
     });
-});
 
+    //Gifts
+    Route::post('/gifts', [App\Http\Controllers\Customer\GiftController::class, 'exchange']);
+
+    //GiftHistory
+    Route::get('/gifthistory', [App\Http\Controllers\Customer\GifthistoryController::class, 'history']);
+
+    //Membership
+    Route::prefix('membership')->group(function () {
+        Route::post('/register', [App\Http\Controllers\Customer\MembershipController::class, 'register']);
+        Route::get('/profile', [App\Http\Controllers\Customer\MembershipController::class, 'profile']);
+    });
+});
+//Review
+Route::prefix('/reviews')->group(function () {
+    Route::get('/', [App\Http\Controllers\Customer\ReviewController::class, 'index']);
+
+});
+//Showtime
+Route::get('showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimes']);
+Route::get('movies/{movie_id}/showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimesByMovie']);
 
 //Movie
 Route::prefix('/movies')->group(function () {
@@ -200,7 +216,8 @@ Route::prefix('/blogs')->group(function () {
     Route::get('/{id}', [App\Http\Controllers\Customer\BlogController::class, 'show']);
 });
 
-
+//Gift
+Route::get('/gifts', [App\Http\Controllers\Customer\GiftController::class, 'index']);
 
 //Thanh toán ví điện tử
 use App\Http\Controllers\MoMoController;

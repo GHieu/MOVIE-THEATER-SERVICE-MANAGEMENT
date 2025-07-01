@@ -29,12 +29,12 @@ class GiftController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
+        $validated = $validator->validated();
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('images', 'public');
         }
 
-        $gift = Gift::create($request->all());
+        $gift = Gift::create($validated);
 
         return response()->json($gift, 201);
     }
@@ -59,7 +59,13 @@ class GiftController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $gift->update($request->all());
+        $validated = $validator->validated();
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('images', 'public');
+        }
+
+        $gift->update($validated);
         return response()->json($gift, 200);
     }
 
