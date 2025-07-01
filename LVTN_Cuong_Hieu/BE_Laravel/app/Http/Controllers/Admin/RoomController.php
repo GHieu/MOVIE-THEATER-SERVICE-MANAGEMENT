@@ -20,14 +20,15 @@ class RoomController extends Controller
             'name' => [
                 'required',
                 'string',
+                'min:5',
                 'max:100',
-                'regex:/^[A-Za-z0-9\s\-]+$/',
+                'regex:/^[\pL\s0-9\.,!?-]+$/u', // kiểm tra ký tự cho phép
                 'unique:rooms,name'
             ],
             'type' => [
                 'required',
                 'string',
-                'in:2D,3D,IMAX'
+                'in:2Dsub,2Dcap,3Dsub,3Dcap,IMAXsub,IMAXcap'
             ],
             'seat_count' => [
                 'required',
@@ -41,7 +42,7 @@ class RoomController extends Controller
                 'in:0,1,2'
             ],
         ], [
-            'name.regex' => 'Tên phòng chỉ được chứa chữ cái, số, khoảng trắng và dấu gạch ngang.',
+            'name.regex' => 'Tên phòng chỉ được chứa chữ cái, số.',
         ]);
 
 
@@ -69,11 +70,12 @@ class RoomController extends Controller
                 'sometimes',
                 'required',
                 'string',
+                'min:5',
                 'max:100',
-                'regex:/^[A-Za-z0-9\s\-]+$/',
+                'regex:/^[\pL\s0-9\.,!?-]+$/u', // kiểm tra ký tự cho phép
                 'unique:rooms,name,' . $id
             ],
-            'type' => 'sometimes|required|string|in:2D,3D,IMAX',
+            'type' => 'sometimes|required|string|in:2Dsub,2Dcap,3Dsub,3Dcap,IMAXsub,IMAXcap',
             'seat_count' => 'sometimes|required|integer|min:1|max:500',
             'status' => 'sometimes|required|integer|in:0,1,2',
         ]);
