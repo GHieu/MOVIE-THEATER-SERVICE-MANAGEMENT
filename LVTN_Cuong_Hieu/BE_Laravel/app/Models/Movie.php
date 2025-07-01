@@ -16,6 +16,7 @@ class Movie extends Model
         'director',
         'cast',
         'nation',
+        'studio',
         'poster',
         'banner',
         'age',

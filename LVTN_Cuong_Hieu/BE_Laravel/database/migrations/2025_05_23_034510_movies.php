@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->string('director');
             $table->text('cast');
             $table->string('nation');
+            $table->string('studio');
             $table->string('poster');
             $table->string('banner');
             $table->enum('age', ['P', 'T13', 'T16', 'T18']);
