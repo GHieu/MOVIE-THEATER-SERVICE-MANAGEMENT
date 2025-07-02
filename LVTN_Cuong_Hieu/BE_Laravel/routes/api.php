@@ -199,6 +199,11 @@ Route::prefix('/reviews')->group(function () {
     Route::get('/', [App\Http\Controllers\Customer\ReviewController::class, 'index']);
 
 });
+
+Route::prefix('membership')->group(function () {
+    Route::get('/profile', [App\Http\Controllers\Customer\MembershipController::class, 'profile']);
+});
+
 //Showtime
 Route::get('showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimes']);
 Route::get('movies/{movie_id}/showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimesByMovie']);
