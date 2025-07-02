@@ -21,29 +21,30 @@ class MembershipController extends Controller
 
         $validator = Validator::make($request->all(), [
             'customer_id' => 'required|exists:customers,id',
-            'member_type' => 'required|string|in:' . implode(',', $types),
             'point' => 'required|integer|min:0|max:100000',
+            'total_points' => 'nullable|integer|min:0|max:100000', // ✅ Thêm dòng này
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $membership = Membership::create($request->all());
+        $data = $request->only(['customer_id', 'point', 'total_points']);
+        $data['total_points'] = $data['total_points'] ?? 0;
 
-        $membership->refresh();
-
-        if ($membership->total_points >= 200) {
-            $membership->member_type = 'Diamond';
-        } elseif ($membership->total_points >= 100) {
-            $membership->member_type = 'Gold';
+        // Gán loại thành viên theo mốc total_points
+        if ($data['total_points'] >= 1000) {
+            $data['member_type'] = 'Diamond';
+        } elseif ($data['total_points'] >= 300) {
+            $data['member_type'] = 'Gold';
         } else {
-            $membership->member_type = 'Silver';
+            $data['member_type'] = 'Silver';
         }
-        $membership->save();
 
+        $membership = Membership::create($data);
         return response()->json($membership, 201);
     }
+
 
     // Cập nhật điểm hoặc loại thành viên
     public function update(Request $request, $id)
@@ -54,27 +55,29 @@ class MembershipController extends Controller
             return response()->json(['message' => 'Membership not found'], 404);
         }
 
-        $types = ['Silver', 'Gold', 'Diamond'];
         $validator = Validator::make($request->all(), [
-            'member_type' => 'nullable|string|in:' . implode(',', $types),
             'point' => 'nullable|integer|min:0|max:100000',
+            'total_points' => 'nullable|integer|min:0|max:100000',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $membership->update($request->only(['member_type', 'point']));
+        $membership->update($request->only(['point', 'total_points']));
 
-        if ($membership->total_points >= 200) {
+        // Tính lại loại thẻ theo tổng điểm tích luỹ
+        if ($membership->total_points >= 1000) {
             $membership->member_type = 'Diamond';
-        } elseif ($membership->total_points >= 100) {
+        } elseif ($membership->total_points >= 300) {
             $membership->member_type = 'Gold';
         } else {
             $membership->member_type = 'Silver';
         }
+
         $membership->save();
 
         return response()->json($membership, 200);
     }
+
 }
