@@ -17,6 +17,19 @@ use Carbon\Carbon;
 
 class BookTicketController extends Controller
 {
+
+    private function updateMemberType(Membership $membership)
+    {
+        if ($membership->total_points >= 1000) {
+            $membership->member_type = 'Diamond';
+        } elseif ($membership->total_points >= 300) {
+            $membership->member_type = 'Gold';
+        } else {
+            $membership->member_type = 'Silver';
+        }
+        $membership->save();
+    }
+
     // Đặt vé
     public function bookTicket(Request $request)
     {
@@ -37,7 +50,6 @@ class BookTicketController extends Controller
             $showtime = Showtime::findOrFail($request->showtime_id);
             $room_id = $showtime->room_id;
 
-            // Tính tổng ghế
             $seatTotal = 0;
             foreach ($request->seats as $seatCode) {
                 $row = substr($seatCode, 0, 1);
@@ -54,7 +66,6 @@ class BookTicketController extends Controller
                 $seatTotal += $seat->price;
             }
 
-            // Tính tổng dịch vụ
             $serviceTotal = 0;
             $servicesData = [];
             if ($request->has('services')) {
@@ -70,10 +81,8 @@ class BookTicketController extends Controller
                 }
             }
 
-            // Áp dụng khuyến mãi (nếu có)
             $discount = 0;
             $promotion = null;
-
             if ($request->filled('promotion_id')) {
                 $promotion = Promotion::where('id', $request->promotion_id)
                     ->where('status', 'active')
@@ -93,7 +102,6 @@ class BookTicketController extends Controller
 
             $total = max(0, $seatTotal + $serviceTotal - $discount);
 
-            // Tạo vé
             $ticket = Ticket::create([
                 'customer_id' => $customer->id,
                 'showtime_id' => $showtime->id,
@@ -105,16 +113,15 @@ class BookTicketController extends Controller
 
             $customer->notify(new \App\Notifications\TicketBooked($ticket));
 
-            // Cộng điểm nếu là thành viên
             if ($ticket->status === 'paid') {
                 $membership = Membership::where('customer_id', $customer->id)->first();
                 if ($membership) {
                     $membership->increment('point', 10);
                     $membership->increment('total_points', 10);
+                    $this->updateMemberType($membership);
                 }
             }
 
-            // Lưu ghế
             foreach ($request->seats as $seatCode) {
                 $row = substr($seatCode, 0, 1);
                 $number = substr($seatCode, 1);
@@ -133,7 +140,6 @@ class BookTicketController extends Controller
                 ]);
             }
 
-            // Dịch vụ
             foreach ($servicesData as $item) {
                 ServiceOrder::create([
                     'ticket_id' => $ticket->id,

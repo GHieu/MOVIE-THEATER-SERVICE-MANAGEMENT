@@ -22,8 +22,6 @@ class GiftController extends Controller
         return response()->json($gifts);
     }
 
-
-
     public function exchange(Request $request)
     {
         $request->validate([
@@ -48,12 +46,7 @@ class GiftController extends Controller
                 return response()->json(['message' => 'Quà đã hết hàng'], 400);
             }
 
-            $membership->point -= $gift->point_required;
-            if ($membership->point < 0) {
-                $membership->point = 0;
-            }
-            $membership->save();
-
+            $membership->decrement('point', $gift->point_required);
             $gift->decrement('stock');
 
             $history = GiftHistory::create([
@@ -62,7 +55,6 @@ class GiftController extends Controller
                 'exchanged_at' => Carbon::now(),
                 'image' => $gift->image
             ]);
-
 
             return response()->json([
                 'message' => 'Đổi quà thành công',
