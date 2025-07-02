@@ -31,6 +31,17 @@ class MembershipController extends Controller
 
         $membership = Membership::create($request->all());
 
+        $membership->refresh();
+
+        if ($membership->total_points >= 200) {
+            $membership->member_type = 'Diamond';
+        } elseif ($membership->total_points >= 100) {
+            $membership->member_type = 'Gold';
+        } else {
+            $membership->member_type = 'Silver';
+        }
+        $membership->save();
+
         return response()->json($membership, 201);
     }
 
@@ -54,6 +65,15 @@ class MembershipController extends Controller
         }
 
         $membership->update($request->only(['member_type', 'point']));
+
+        if ($membership->total_points >= 200) {
+            $membership->member_type = 'Diamond';
+        } elseif ($membership->total_points >= 100) {
+            $membership->member_type = 'Gold';
+        } else {
+            $membership->member_type = 'Silver';
+        }
+        $membership->save();
 
         return response()->json($membership, 200);
     }

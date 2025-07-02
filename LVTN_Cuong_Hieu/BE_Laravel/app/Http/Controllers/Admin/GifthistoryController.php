@@ -19,7 +19,22 @@ class GifthistoryController extends Controller
             'gift' => 'nullable|string|max:100',
         ]);
 
+
+
         $query = GiftHistory::with(['customer:id,name,email', 'gift:id,name']);
+
+        $request->validate([
+            'from_date' => 'nullable|date|before_or_equal:to_date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('exchanged_at', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('exchanged_at', '<=', $request->to_date);
+        }
+
 
         // Lọc theo tên khách hàng
         if ($request->has('customer')) {
