@@ -13,7 +13,7 @@ class ShowtimeController extends Controller
     // Hiển thị danh sách với filter và tìm kiếm
     public function index(Request $request)
     {
-        $query = Showtime::with(['movie:id,title,duration', 'room:id,name,capacity']);
+        $query = Showtime::with(['movie:id,title,duration', 'room:id,name']);
 
         // Existing filters
         if ($request->filled('movie_id')) {
@@ -105,7 +105,7 @@ class ShowtimeController extends Controller
     {
         $showtime = Showtime::with([
             'movie:id,title,duration,poster_url',
-            'room:id,name,capacity',
+            'room:id,name',
             'promotion:id,name,discount_percentage'
         ])->findOrFail($id);
 
@@ -243,14 +243,20 @@ class ShowtimeController extends Controller
     /**
      * Validate business rules
      */
+    /**
+     * Validate business rules - Simple fix
+     */
     private function validateBusinessRules(array $data): void
     {
         $startTime = Carbon::parse($data['start_time']);
         $endTime = Carbon::parse($data['end_time']);
 
+        // FIX: Đổi thứ tự - tính từ startTime đến endTime
+        $diffInMinutes = $startTime->diffInMinutes($endTime);
+
         // Kiểm tra thời lượng tối thiểu
-        if ($endTime->diffInMinutes($startTime) < 30) {
-            throw new \Exception('Thời lượng suất chiếu phải ít nhất 30 phút');
+        if ($diffInMinutes < 30) {
+            throw new \Exception('Thời lượng suất chiếu phải ít nhất 30 phút. Hiện tại: ' . $diffInMinutes . ' phút');
         }
 
         // Kiểm tra giá vé phải là bội số của 1000
