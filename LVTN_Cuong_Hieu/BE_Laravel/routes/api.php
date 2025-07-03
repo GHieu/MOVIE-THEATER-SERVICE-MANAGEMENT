@@ -223,18 +223,3 @@ Route::prefix('/blogs')->group(function () {
 
 //Gift
 Route::get('/gifts', [App\Http\Controllers\Customer\GiftController::class, 'index']);
-
-//Thanh toán ví điện tử
-use App\Http\Controllers\MoMoController;
-
-// Route::post('/momo/create-payment', [MoMoController::class, 'createPayment'])->name('momo.create');
-// Route::get('/momo/callback', [MoMoController::class, 'callback'])->name('momo.callback');
-// Route::post('/momo/ipn', [MoMoController::class, 'ipn'])->name('momo.ipn');
-// Route::get('/momo/test-config', [MoMoController::class, 'testConfig'])->name('momo.test'); // Test endpoint
-
-
-Route::middleware('api')->group(function () {
-    // MoMo API endpoints
-    Route::post('/momo/create-payment', [MoMoController::class, 'createPaymentApi'])->name('momo.api.create');
-    Route::get('/momo/test-config', [MoMoController::class, 'testConfig'])->name('momo.test.config');
-});

@@ -8,7 +8,21 @@ class Ticket extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['customer_id', 'showtime_id', 'promotion_id', 'total_price', 'status'];
+    protected $fillable = [
+        'customer_id',
+        'showtime_id',
+        'promotion_id',
+        'total_price',
+        'payment_method',
+        'status',
+        'vnpay_order_id',
+        'vnpay_transaction_no',
+        'paid_at'
+    ];
+
+    protected $casts = [
+        'paid_at' => 'datetime',
+    ];
 
     public function customer()
     {
