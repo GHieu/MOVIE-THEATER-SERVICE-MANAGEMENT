@@ -18,21 +18,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-// Route::post('/payment/momo', [PaymentController::class, 'createPayment'])->name('payment.momo');
-// Route::get('/payment', fn() => view('payment'));
 
 
+// Routes cho thanh toán vé xem phim
+// Thêm vào routes/web.php
 
-// Route::post('/momo/payment', [MoMoController::class, 'createPayment'])->name('momo.payment');
-// Route::get('/momo/callback', [MoMoController::class, 'callback'])->name('momo.callback');
-// Route::post('/momo/ipn', [MoMoController::class, 'ipn'])->name('momo.ipn');
-
-
-Route::get('/momo/payment', function () {
-    return view('momo.payment');
-})->name('momo.payment.form');
-
-Route::post('/momo/create-payment-web', [MoMoController::class, 'createPayment'])->name('momo.create.web');
-Route::post('/momo/create', [MoMoController::class, 'createPayment'])->name('momo.create');
-Route::get('/momo/callback', [MoMoController::class, 'callback'])->name('momo.callback');
-Route::post('/momo/ipn', [MoMoController::class, 'ipn'])->name('momo.ipn');
+Route::prefix('payment')->group(function () {
+    Route::get('/ticket/{ticket}', [PaymentController::class, 'showTicketPayment'])->name('payment.form');
+    Route::post('/create', [PaymentController::class, 'createPayment'])->name('payment.create');
+    Route::get('/vnpay-return', [PaymentController::class, 'vnpayReturn'])->name('payment.vnpay.return');
+    Route::get('/success', [PaymentController::class, 'paymentSuccess'])->name('payment.success');
+    Route::get('/failed', [PaymentController::class, 'paymentFailed'])->name('payment.failed');
+});

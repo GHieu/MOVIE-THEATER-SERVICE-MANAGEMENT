@@ -41,6 +41,7 @@ class BookTicketController extends Controller
             'services.*.service_id' => 'required|exists:services,id',
             'services.*.quantity' => 'required|integer|min:1|max:20',
             'promotion_id' => 'nullable|exists:promotions,id',
+            'payment_method' => 'required|in:cash,vnpay', // Thêm validation cho payment method
         ]);
 
         $customer = $request->user();
@@ -102,18 +103,22 @@ class BookTicketController extends Controller
 
             $total = max(0, $seatTotal + $serviceTotal - $discount);
 
+            // Xác định status dựa trên payment method
+            $status = $request->payment_method === 'vnpay' ? 'pending' : 'paid';
+
             $ticket = Ticket::create([
                 'customer_id' => $customer->id,
                 'showtime_id' => $showtime->id,
                 'promotion_id' => $promotion->id ?? null,
                 'total_price' => $total,
-                'payment_method' => 'cash',
-                'status' => 'paid',
+                'payment_method' => $request->payment_method,
+                'status' => $status,
             ]);
 
-            $customer->notify(new \App\Notifications\TicketBooked($ticket));
+            // Chỉ gửi notification và cập nhật điểm nếu thanh toán cash
+            if ($status === 'paid') {
+                $customer->notify(new \App\Notifications\TicketBooked($ticket));
 
-            if ($ticket->status === 'paid') {
                 $membership = Membership::where('customer_id', $customer->id)->first();
                 if ($membership) {
                     $membership->increment('point', 10);
@@ -122,6 +127,7 @@ class BookTicketController extends Controller
                 }
             }
 
+            // Tạo ticket details và service orders
             foreach ($request->seats as $seatCode) {
                 $row = substr($seatCode, 0, 1);
                 $number = substr($seatCode, 1);
@@ -130,7 +136,8 @@ class BookTicketController extends Controller
                     ->where('seat_number', $number)
                     ->first();
 
-                $seat->status = 'reversed';
+                // Chỉ set status ghế thành reserved nếu chưa thanh toán, hoặc booked nếu đã thanh toán
+                $seat->status = $status === 'pending' ? 'reserved' : 'booked';
                 $seat->save();
 
                 Ticket_details::create([
@@ -151,11 +158,21 @@ class BookTicketController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'message' => 'Đặt vé thành công!',
-                'ticket_id' => $ticket->id,
-                'total' => $total
-            ]);
+            // Trả về response khác nhau tùy theo payment method
+            if ($request->payment_method === 'vnpay') {
+                return response()->json([
+                    'message' => 'Vé đã được tạo, vui lòng thanh toán để hoàn tất đặt vé!',
+                    'ticket_id' => $ticket->id,
+                    'total' => $total,
+                    'payment_url' => route('payment.form', ['ticket' => $ticket->id])
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Đặt vé thành công!',
+                    'ticket_id' => $ticket->id,
+                    'total' => $total
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

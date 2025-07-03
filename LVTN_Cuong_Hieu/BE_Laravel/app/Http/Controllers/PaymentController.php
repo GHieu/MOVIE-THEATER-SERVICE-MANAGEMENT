@@ -3,127 +3,176 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
-
+use App\Services\VNPayService;
+use App\Models\Ticket;
+use App\Models\Showtime;
+use App\Models\Customer;
+use App\Models\Membership;
+use App\Models\Seat;
+use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
-    public function createPayment(Request $req)
+    protected $vnpayService;
+
+    public function __construct(VNPayService $vnpayService)
     {
-        $endpoint = config('momo.endpoint');
-        $partnerCode = config('momo.partner_code');
-        $accessKey = config('momo.access_key');
-        $secretKey = config('momo.secret_key');
-        $orderId = Str::uuid();
-        $orderInfo = "Thanh toán vé xem phim #" . $orderId;
-        $amount = (string) $req->amount;
-        $ipnUrl = config('momo.notify_url');
-        $redirectUrl = config('momo.return_url');
-        $requestId = time() . "";
-        $extraData = "";
+        $this->vnpayService = $vnpayService;
+    }
 
-        $rawHash = "accessKey=$accessKey&amount=$amount&extraData=$extraData&ipnUrl=$ipnUrl"
-            . "&orderId=$orderId&orderInfo=$orderInfo&partnerCode=$partnerCode"
-            . "&redirectUrl=$redirectUrl&requestId=$requestId&requestType=captureWallet";
-        $signature = hash_hmac('sha256', $rawHash, $secretKey);
-
-        $data = compact(
-            'partnerCode',
-            'accessKey',
-            'requestId',
-            'amount',
-            'orderId',
-            'orderInfo',
-            'redirectUrl',
-            'ipnUrl',
-            'extraData'
-        );
-        $data += [
-            'partnerName' => 'DemoCinema',
-            'storeId' => 'Store001',
-            'lang' => 'vi',
-            'requestType' => 'captureWallet',
-            'signature' => $signature
-        ];
-
-        $curl = curl_init($endpoint);
-        curl_setopt_array($curl, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => json_encode($data),
+    public function createPayment(Request $request)
+    {
+        $request->validate([
+            'ticket_id' => 'required|exists:tickets,id',
         ]);
 
-        $result = curl_exec($curl);
-        curl_close($curl);
-        $resJson = json_decode($result, true);
-        \Log::info('MoMo response:', $resJson);
-        return redirect($resJson['payUrl'] ?? '/');
-    }
+        $ticket = Ticket::with(['showtime.movie', 'details'])->find($request->ticket_id);
 
-    public function handleReturn(Request $req)
-    {
-        Log::info('🔙 Return URL data:', $req->all());
-
-        if ($req->get('resultCode') === '0') {
-            return redirect('/api/payment/success?orderId=' . $req->get('orderId'));
+        if (!$ticket || $ticket->status !== 'pending') {
+            return redirect()->back()->with('error', 'Vé không hợp lệ hoặc đã được thanh toán!');
         }
 
-        return redirect('/api/payment/failure?orderId=' . $req->get('orderId'));
+        $orderId = 'TICKET_' . $ticket->id . '_' . time();
+        $amount = $ticket->total_price;
+        $movieTitle = $ticket->showtime->movie->title ?? 'Vé xem phim';
+        $seatNumbers = $ticket->details->pluck('seat_number')->implode(', ');
+        $orderInfo = "Thanh toan ve xem phim: {$movieTitle} - Ghe: {$seatNumbers}";
+        $ipAddr = $request->ip();
+
+        // Lưu order_id vào ticket để tracking
+        $ticket->update(['vnpay_order_id' => $orderId]);
+
+        // Tạo URL thanh toán
+        $paymentUrl = $this->vnpayService->createPaymentUrl($orderId, $amount, $orderInfo, $ipAddr);
+
+        return redirect($paymentUrl);
     }
 
-    public function handleNotify(Request $req)
+    public function vnpayReturn(Request $request)
     {
-        Log::info('📩 MoMo IPN data:', $req->all());
+        $inputData = $request->all();
 
-        $data = $req->all();
-        $valid = $this->verifySignature($data, config('momo.secret_key'));
+        // Validate response từ VNPay
+        if ($this->vnpayService->validateResponse($inputData)) {
+            $orderId = $inputData['vnp_TxnRef'];
+            $amount = $inputData['vnp_Amount'] / 100;
+            $responseCode = $inputData['vnp_ResponseCode'];
+            $transactionNo = $inputData['vnp_TransactionNo'] ?? null;
 
-        if ($valid && isset($data['resultCode']) && $data['resultCode'] === '0') {
-            // ✅ Cập nhật trạng thái Vé/Đơn hàng (ví dụ)
-            // MyOrder::where('order_id', $data['orderId'])
-            //    ->update(['status' => 'paid']);
+            // Tìm ticket theo vnpay_order_id
+            $ticket = Ticket::with(['showtime', 'details', 'customer'])->where('vnpay_order_id', $orderId)->first();
 
-            return response()->json(['message' => 'OK'], 200);
+            if (!$ticket) {
+                return redirect()->route('payment.failed')->with('error', 'Không tìm thấy vé!');
+            }
+
+            if ($responseCode == '00') {
+                // Thanh toán thành công
+                DB::transaction(function () use ($ticket, $transactionNo) {
+                    $ticket->update([
+                        'status' => 'paid',
+                        'vnpay_transaction_no' => $transactionNo,
+                        'paid_at' => now()
+                    ]);
+
+                    // Cập nhật trạng thái ghế từ reserved thành booked
+                    $this->updateSeatStatus($ticket);
+
+                    // Cập nhật điểm membership
+                    $membership = Membership::where('customer_id', $ticket->customer_id)->first();
+                    if ($membership) {
+                        $membership->increment('point', 10);
+                        $membership->increment('total_points', 10);
+                        $this->updateMemberType($membership);
+                    }
+
+                    // Gửi notification
+                    $ticket->customer->notify(new \App\Notifications\TicketBooked($ticket));
+                });
+
+                return redirect()->route('payment.success', ['ticket' => $ticket->id])
+                    ->with('message', 'Thanh toán vé xem phim thành công!');
+            } else {
+                // Thanh toán thất bại - trả lại ghế về available
+                DB::transaction(function () use ($ticket) {
+                    $ticket->update(['status' => 'failed']);
+                    $this->releaseSeatStatus($ticket);
+                });
+
+                return redirect()->route('payment.failed')
+                    ->with('error', 'Thanh toán thất bại! Mã lỗi: ' . $responseCode);
+            }
+        } else {
+            // Dữ liệu không hợp lệ
+            return redirect()->route('payment.failed')->with('error', 'Dữ liệu không hợp lệ!');
+        }
+    }
+
+    public function showTicketPayment($ticketId)
+    {
+        $ticket = Ticket::with(['showtime.movie', 'customer', 'details'])->find($ticketId);
+
+        if (!$ticket || $ticket->status !== 'pending') {
+            return redirect()->back()->with('error', 'Vé không hợp lệ hoặc đã được thanh toán!');
         }
 
-        return response()->json(['message' => 'Invalid signature'], 400);
+        return view('payment.ticket-form', compact('ticket'));
     }
 
-    private function verifySignature(array $data, string $secretKey): bool
+    public function paymentSuccess(Request $request)
     {
-        $signatureMoMo = $data['signature'] ?? '';
+        $ticket = null;
+        if ($request->has('ticket')) {
+            $ticket = Ticket::with(['showtime.movie', 'customer', 'details'])->find($request->ticket);
+        }
 
-        $fields = [
-            'accessKey',
-            'amount',
-            'extraData',
-            'message',
-            'orderId',
-            'orderInfo',
-            'orderType',
-            'partnerCode',
-            'payType',
-            'requestId',
-            'responseTime',
-            'resultCode',
-            'transId'
-        ];
-        $hashString = '';
-        $arr = [];
-        foreach ($fields as $key) {
-            if (isset($data[$key])) {
-                $arr[$key] = $data[$key];
+        return view('payment.success', compact('ticket'));
+    }
+
+    public function paymentFailed()
+    {
+        return view('payment.failed');
+    }
+
+    // Helper method để cập nhật trạng thái ghế thành booked
+    private function updateSeatStatus($ticket)
+    {
+        foreach ($ticket->details as $detail) {
+            $seat = Seat::where('room_id', $ticket->showtime->room_id)
+                ->whereRaw("CONCAT(seat_row, seat_number) = ?", [$detail->seat_number])
+                ->first();
+
+            if ($seat) {
+                $seat->status = 'booked';
+                $seat->save();
             }
         }
-        ksort($arr);
-        foreach ($arr as $k => $v) {
-            $hashString .= "$k=$v&";
-        }
-        $hashString = rtrim($hashString, "&");
-        $sign = hash_hmac('sha256', $hashString, $secretKey);
+    }
 
-        return $sign === $signatureMoMo;
+    // Helper method để trả lại ghế về available khi thanh toán thất bại
+    private function releaseSeatStatus($ticket)
+    {
+        foreach ($ticket->details as $detail) {
+            $seat = Seat::where('room_id', $ticket->showtime->room_id)
+                ->whereRaw("CONCAT(seat_row, seat_number) = ?", [$detail->seat_number])
+                ->first();
+
+            if ($seat) {
+                $seat->status = 'available';
+                $seat->save();
+            }
+        }
+    }
+
+    private function updateMemberType(Membership $membership)
+    {
+        if ($membership->total_points >= 1000) {
+            $membership->member_type = 'Diamond';
+        } elseif ($membership->total_points >= 300) {
+            $membership->member_type = 'Gold';
+        } else {
+            $membership->member_type = 'Silver';
+        }
+        $membership->save();
     }
 }
