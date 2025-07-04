@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use Illuminate\Support\Carbon;
 class Showtime extends Model
 {
     protected $fillable = [
@@ -61,6 +61,14 @@ class Showtime extends Model
     public function scopeUpcoming($query)
     {
         return $query->where('start_time', '>', now());
+    }
+
+    // Thêm vào trong class Showtime
+    public function serializeDate(\DateTimeInterface $date)
+    {
+        return Carbon::instance($date)
+            ->setTimezone('Asia/Ho_Chi_Minh')
+            ->format('Y-m-d H:i:s');
     }
 
     public function scopeOngoing($query)
