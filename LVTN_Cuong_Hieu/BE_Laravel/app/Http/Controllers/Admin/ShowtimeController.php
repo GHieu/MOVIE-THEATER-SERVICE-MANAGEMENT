@@ -116,7 +116,7 @@ class ShowtimeController extends Controller
             'data' => $showtime,
             'seat_info' => $seatInfo,
             'can_edit' => $showtime->start_time > now()->addMinutes(30),
-            'can_delete' => $showtime->start_time > now() && !$showtime->bookings()->exists()
+            'can_delete' => $showtime->start_time > now() && !$showtime->tickets()->exists() // Sửa từ bookings()
         ]);
     }
 
@@ -179,7 +179,7 @@ class ShowtimeController extends Controller
             $showtime = Showtime::findOrFail($id);
 
             // Kiểm tra có đặt vé không
-            if ($showtime->bookings()->exists()) {
+            if ($showtime->tickets()->exists()) { // Sửa từ bookings()
                 throw new \Exception('Không thể xóa suất chiếu đã có đặt vé');
             }
 
@@ -276,7 +276,15 @@ class ShowtimeController extends Controller
     private function getSeatAvailability($showtime): array
     {
         $totalSeats = $showtime->room->capacity ?? 0;
-        $bookedSeats = $showtime->bookings()->sum('seat_count') ?? 0;
+
+        // Tính số ghế đã đặt từ ticket_details thay vì bookings
+        $bookedSeats = $showtime->tickets()
+            ->whereHas('details') // Kiểm tra có ticket_details
+            ->with('details')
+            ->get()
+            ->sum(function ($ticket) {
+                return $ticket->details->count(); // Đếm số seat trong ticket_details
+            });
 
         return [
             'total_seats' => $totalSeats,
