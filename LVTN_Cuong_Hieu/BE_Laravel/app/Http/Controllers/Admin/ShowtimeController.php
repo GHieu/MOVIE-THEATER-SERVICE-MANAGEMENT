@@ -15,7 +15,7 @@ class ShowtimeController extends Controller
     {
         $query = Showtime::with(['movie:id,title,duration', 'room:id,name']);
 
-        // Existing filters
+        // Filter
         if ($request->filled('movie_id')) {
             $query->where('movie_id', $request->movie_id);
         }
@@ -32,12 +32,9 @@ class ShowtimeController extends Controller
                 $q->where('title', 'like', '%' . $request->keyword . '%')
             );
         }
-
-        // Additional filters
         if ($request->filled('date')) {
             $query->whereDate('start_time', $request->date);
         }
-
         if ($request->filled('status')) {
             $now = now();
             match ($request->status) {
@@ -48,17 +45,22 @@ class ShowtimeController extends Controller
             };
         }
 
-        // Sorting
+        // ✅ Clone ngay sau filter, trước khi orderBy/paginate
+        $summaryQuery = clone $query;
+
         $sortBy = $request->get('sort_by', 'start_time');
         $sortDir = $request->get('sort_dir', 'asc');
 
+        // Bây giờ query sẽ đúng và không ảnh hưởng đến summary
+        $paginatedData = $query->orderBy($sortBy, $sortDir)
+            ->paginate($request->get('per_page', 10));
+
         return response()->json([
-            'data' => $query->orderBy($sortBy, $sortDir)->paginate(
-                $request->get('per_page', 10)
-            ),
-            'summary' => $this->getShowtimesSummary($query)
+            'data' => $paginatedData,
+            'summary' => $this->getShowtimesSummary($summaryQuery)
         ]);
     }
+
 
     // Thêm suất chiếu mới
     public function store(Request $request)
