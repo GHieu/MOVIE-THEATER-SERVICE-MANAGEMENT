@@ -135,7 +135,7 @@ Route::prefix('admin')->group(function () {
         Route::get('/tickets/history', [HistoryTicketController::class, 'all']);
         Route::get('/ticket/{id}', [HistoryTicketController::class, 'show']);
         Route::get('/tickets/filter', [HistoryTicketController::class, 'filter']);
-
+        Route::get('/showtimes/debug', [ShowtimeController::class, 'debug']);
 
         //Customer
         Route::prefix('customers')->group(function () {
