@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Showtime;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-
+use App\Models\Movie;
 class ShowtimeController extends Controller
 {
     // Hiển thị danh sách với filter và tìm kiếm
@@ -241,10 +241,7 @@ class ShowtimeController extends Controller
     }
 
     /**
-     * Validate business rules
-     */
-    /**
-     * Validate business rules - Simple fix
+     * Validate business rules - Enhanced with movie duration check
      */
     private function validateBusinessRules(array $data): void
     {
@@ -267,6 +264,22 @@ class ShowtimeController extends Controller
         // Kiểm tra không được tạo quá xa (3 tháng)
         if ($startTime->gt(now()->addMonths(3))) {
             throw new \Exception('Không thể tạo suất chiếu quá 3 tháng trước');
+        }
+
+        // THÊM MỚI: Kiểm tra thời gian suất chiếu phải bằng duration của phim
+        $movie = \App\Models\Movie::findOrFail($data['movie_id']);
+
+        if ($movie->duration) {
+            $movieDuration = $movie->duration; // Thời lượng phim (tính bằng phút)
+
+            // Kiểm tra thời gian suất chiếu phải bằng thời lượng phim
+            if ($diffInMinutes != $movieDuration) {
+                throw new \Exception(
+                    "Thời gian suất chiếu ({$diffInMinutes} phút) " .
+                    "phải bằng thời lượng phim '{$movie->title}' ({$movieDuration} phút). " .
+                    "Vui lòng điều chỉnh thời gian kết thúc."
+                );
+            }
         }
     }
 
