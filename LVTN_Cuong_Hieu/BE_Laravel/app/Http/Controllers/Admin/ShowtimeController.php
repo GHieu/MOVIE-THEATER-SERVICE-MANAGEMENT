@@ -269,7 +269,7 @@ class ShowtimeController extends Controller
         }
 
         // THÊM MỚI: Kiểm tra thời gian suất chiếu phải bằng duration của phim
-        $movie = \App\Models\Movie::findOrFail($data['movie_id']);
+        $movie = Movie::findOrFail($data['movie_id']);
 
         if ($movie->duration) {
             $movieDuration = $movie->duration; // Thời lượng phim (tính bằng phút)
