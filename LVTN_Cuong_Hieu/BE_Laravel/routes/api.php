@@ -22,7 +22,7 @@ use App\Http\Controllers\Admin\GifthistoryController;
 use App\Http\Controllers\Admin\ServiceOrderController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\HistoryTicketController;
-
+use App\Http\Controllers\Admin\CustomerController;
 
 
 
@@ -135,6 +135,35 @@ Route::prefix('admin')->group(function () {
         Route::get('/tickets/history', [HistoryTicketController::class, 'all']);
         Route::get('/ticket/{id}', [HistoryTicketController::class, 'show']);
         Route::get('/tickets/filter', [HistoryTicketController::class, 'filter']);
+
+
+        //Customer
+        Route::prefix('customers')->group(function () {
+
+            // Danh sách khách hàng
+            Route::get('', [CustomerController::class, 'index']);
+
+            // Chi tiết khách hàng
+            Route::get('/{id}', [CustomerController::class, 'show']);
+
+            // Cập nhật thông tin khách hàng
+            Route::post('/{id}', [CustomerController::class, 'update']);
+
+            // Xoá khách hàng
+            Route::delete('/{id}', [CustomerController::class, 'destroy']);
+
+            // Lịch sử đặt vé của khách hàng
+            Route::get('/{id}/tickets', [CustomerController::class, 'ticketHistory']);
+
+            // Lịch sử đánh giá của khách hàng
+            Route::get('/{id}/reviews', [CustomerController::class, 'reviewHistory']);
+
+            // Cập nhật điểm thành viên thủ công (Admin)
+            Route::post('/{id}/update-points', [CustomerController::class, 'updatePoints']);
+
+            // Thống kê tổng quan khách hàng
+            Route::get('-statistics', [CustomerController::class, 'statistics']);
+        });
     });
 });
 
