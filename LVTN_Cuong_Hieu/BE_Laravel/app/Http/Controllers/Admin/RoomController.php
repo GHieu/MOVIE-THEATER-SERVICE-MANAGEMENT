@@ -19,33 +19,10 @@ class RoomController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'min:5',
-                'max:100',
-                'regex:/^[\pL\s0-9\.,!?-]+$/u', // kiểm tra ký tự cho phép
-                'unique:rooms,name'
-            ],
-            'type' => [
-                'required',
-                'string',
-                'in:2Dsub,2Dcap,3Dsub,3Dcap,IMAXsub,IMAXcap'
-            ],
-            'seat_count' => [
-                'required',
-                'numeric',      // is numeric
-                'integer',      // integer check
-                'min:1',        // positive, min value
-                'max:500'       // max value
-            ],
-            'status' => [
-                'required',
-                'integer',
-                'in:0,1,2'
-            ],
-        ], [
-            'name.regex' => 'Tên phòng chỉ được chứa chữ cái, số và một số ký tự đặc biệt.',
+            'name' => 'required|string|min:5|max:100|unique:rooms,name',
+            'type' => 'required|string|in:2Dsub,2Dcap,3Dsub,3Dcap,IMAXsub,IMAXcap',
+            'seat_count' => 'required|integer|min:1|max:500',
+            'status' => 'required|integer|in:0,1,2',
         ]);
 
         $room = Room::create($validated);
@@ -124,27 +101,10 @@ class RoomController extends Controller
             }
 
             $validated = $request->validate([
-                'name' => [
-                    'sometimes',
-                    'required',
-                    'string',
-                    'min:5',
-                    'max:100',
-                    'regex:/^[\pL\s0-9\.,!?-]+$/u',
-                    'unique:rooms,name,' . $id
-                ],
+                'name' => 'sometimes|required|string|min:5|max:100|unique:rooms,name,' . $id,
                 'type' => 'sometimes|required|string|in:2Dsub,2Dcap,3Dsub,3Dcap,IMAXsub,IMAXcap',
-                'seat_count' => [
-                    'sometimes',
-                    'required',
-                    'numeric',
-                    'integer',
-                    'min:1',
-                    'max:500'
-                ],
+                'seat_count' => 'sometimes|required|integer|min:1|max:500',
                 'status' => 'sometimes|required|integer|in:0,1,2',
-            ], [
-                'name.regex' => 'Tên phòng chỉ được chứa chữ cái, số và một số ký tự đặc biệt.',
             ]);
 
             $room->update($validated);

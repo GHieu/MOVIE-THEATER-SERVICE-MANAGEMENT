@@ -66,47 +66,12 @@ class ShowtimeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'movie_id' => [
-                'required',
-                'integer', // is numeric, integer check
-                'min:1',
-                'exists:movies,id'
-            ],
-            'room_id' => [
-                'required',
-                'integer',
-                'min:1',
-                'exists:rooms,id'
-            ],
-            'promotion_id' => [
-                'nullable',
-                'integer',
-                'min:1',
-                'exists:promotions,id'
-            ],
-            'start_time' => [
-                'required',
-                'date_format:Y-m-d H:i:s', // valid date format
-                'date',                    // valid date
-                'after_or_equal:now'       // future/past date check
-            ],
-            'end_time' => [
-                'required',
-                'date_format:Y-m-d H:i:s',
-                'date',
-                'after:start_time'         // range check, start <= end
-            ],
-            'price' => [
-                'required',
-                'numeric',                 // is numeric
-                'min:10000',               // positive, min value
-                'max:1000000',             // max value
-                'regex:/^\d+(\.\d{1,2})?$/', // number format check (tối đa 2 số thập phân)
-            ],
-        ], [
-            'price.regex' => 'Giá vé phải là số, tối đa 2 chữ số thập phân.',
-            'start_time.date_format' => 'Thời gian bắt đầu không đúng định dạng Y-m-d H:i:s.',
-            'end_time.date_format' => 'Thời gian kết thúc không đúng định dạng Y-m-d H:i:s.',
+            'movie_id' => 'required|exists:movies,id',
+            'room_id' => 'required|exists:rooms,id',
+            'promotion_id' => 'nullable|exists:promotions,id',
+            'start_time' => 'required|date_format:Y-m-d H:i:s',
+            'end_time' => 'required|date_format:Y-m-d H:i:s|after:start_time',
+            'price' => 'required|numeric|min:0',
         ]);
 
         try {
@@ -170,47 +135,12 @@ class ShowtimeController extends Controller
         }
 
         $data = $request->validate([
-            'movie_id' => [
-                'required',
-                'integer',
-                'min:1',
-                'exists:movies,id'
-            ],
-            'room_id' => [
-                'required',
-                'integer',
-                'min:1',
-                'exists:rooms,id'
-            ],
-            'promotion_id' => [
-                'nullable',
-                'integer',
-                'min:1',
-                'exists:promotions,id'
-            ],
-            'start_time' => [
-                'required',
-                'date_format:Y-m-d H:i:s',
-                'date',
-                'after_or_equal:' . now()->addMinutes(30)->format('Y-m-d H:i:s')
-            ],
-            'end_time' => [
-                'required',
-                'date_format:Y-m-d H:i:s',
-                'date',
-                'after:start_time'
-            ],
-            'price' => [
-                'required',
-                'numeric',
-                'min:10000',
-                'max:1000000',
-                'regex:/^\d+(\.\d{1,2})?$/',
-            ],
-        ], [
-            'price.regex' => 'Giá vé phải là số, tối đa 2 chữ số thập phân.',
-            'start_time.date_format' => 'Thời gian bắt đầu không đúng định dạng Y-m-d H:i:s.',
-            'end_time.date_format' => 'Thời gian kết thúc không đúng định dạng Y-m-d H:i:s.',
+            'movie_id' => 'required|exists:movies,id',
+            'room_id' => 'required|exists:rooms,id',
+            'promotion_id' => 'nullable|exists:promotions,id',
+            'start_time' => 'required|date_format:Y-m-d H:i:s',
+            'end_time' => 'required|date_format:Y-m-d H:i:s|after:start_time',
+            'price' => 'required|numeric|min:0',
         ]);
 
         try {
