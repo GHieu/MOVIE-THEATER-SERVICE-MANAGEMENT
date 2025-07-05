@@ -41,8 +41,43 @@ class HistoryTicketController extends Controller
     {
 
         $validator = Validator::make($request->all(), [
-            'from_date' => 'nullable|date|before_or_equal:to_date',
-            'to_date' => 'nullable|date|after_or_equal:from_date',
+            'from_date' => [
+                'nullable',
+                'date', // Ngày hợp lệ
+                'date_format:Y-m-d', // Định dạng ngày
+                'before_or_equal:to_date', // Start Date <= End Date
+                'before_or_equal:today', // Không được là ngày trong tương lai
+            ],
+            'to_date' => [
+                'nullable',
+                'date',
+                'date_format:Y-m-d',
+                'after_or_equal:from_date',
+                'before_or_equal:today',
+            ],
+            // Ví dụ nếu có lọc theo số vé:
+            // 'min_ticket' => [
+            //     'nullable',
+            //     'numeric', // Là số
+            //     'integer', // Số nguyên
+            //     'min:1',   // Số dương
+            //     'max:100'  // Khoảng giá trị
+            // ],
+            // 'max_ticket' => [
+            //     'nullable',
+            //     'numeric',
+            //     'integer',
+            //     'min:1',
+            //     'max:100'
+            // ],
+            // Ví dụ nếu có lọc theo tên khách hàng:
+            // 'customer' => [
+            //     'nullable',
+            //     'string',
+            //     'min:2',
+            //     'max:100',
+            //     'regex:/^[\pL\s\-\.]+$/u'
+            // ],
         ]);
 
         //Giúp ngăn trường hợp ngày bắt đầu > ngày kết thúc, hoặc ngày không hợp lệ gây lỗi truy vấn.

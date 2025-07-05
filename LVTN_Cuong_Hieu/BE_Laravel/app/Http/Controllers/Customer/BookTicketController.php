@@ -34,13 +34,41 @@ class BookTicketController extends Controller
     public function bookTicket(Request $request)
     {
         $validated = $request->validate([
-            'showtime_id' => 'required|exists:showtimes,id',
-            'seats' => 'required|array|min:1',
-            'seats.*' => ['required', 'regex:/^[A-Z]{1}[0-9]{1,2}$/'],
-            'services' => 'nullable|array',
-            'services.*.service_id' => 'required|exists:services,id',
-            'services.*.quantity' => 'required|integer|min:1|max:20',
-            'promotion_id' => 'nullable|exists:promotions,id',
+            'showtime_id' => [
+                'required',
+                'integer', // is numeric, integer check
+                'min:1',
+                'exists:showtimes,id'
+            ],
+            'seats' => [
+                'required',
+                'array',
+                'min:1',
+                'max:10' // range check: tối đa 10 ghế/lần
+            ],
+            'seats.*' => [
+                'required',
+                'regex:/^[A-Z]{1}[0-9]{1,2}$/', // allowed characters, format check
+            ],
+            'services' => 'nullable|array|max:10',
+            'services.*.service_id' => [
+                'required_with:services',
+                'integer',
+                'min:1',
+                'exists:services,id'
+            ],
+            'services.*.quantity' => [
+                'required_with:services',
+                'integer',      // integer check
+                'min:1',        // positive
+                'max:20'        // range check
+            ],
+            'promotion_id' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'exists:promotions,id'
+            ],
         ]);
 
         $customer = $request->user();
@@ -210,6 +238,22 @@ class BookTicketController extends Controller
     // Lọc lịch sử
     public function filter(Request $request)
     {
+        $request->validate([
+            'from_date' => [
+                'nullable',
+                'date_format:Y-m-d', // valid date format
+                'date',              // valid date
+                'before_or_equal:to_date' // range check
+            ],
+            'to_date' => [
+                'nullable',
+                'date_format:Y-m-d',
+                'date',
+                'after_or_equal:from_date',
+                'before_or_equal:today' // future/past date check
+            ]
+        ]);
+
         $query = Ticket::with(['showtime.movie', 'showtime.room']);
 
         if ($request->user()->tokenCan('customer')) {

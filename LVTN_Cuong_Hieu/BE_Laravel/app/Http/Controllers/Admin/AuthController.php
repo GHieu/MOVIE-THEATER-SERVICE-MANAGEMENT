@@ -13,13 +13,20 @@ class AuthController extends Controller
     {
 
         $credentials = $request->validate([
-            'email' => 'required|email|max:100', // định dạng email + giới hạn độ dài
+            'email' => [
+                'required',
+                'email',
+                'max:100',
+                'min:6', // độ dài tối thiểu
+                'regex:/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/', // định dạng email
+            ],
             'password' => [
                 'required',
                 'string',
                 'min:6',        // tối thiểu 6 ký tự
                 'max:70',       // tối đa 70 ký tự
                 'regex:/^[A-Za-z0-9!@#$%^&*()_+=-]+$/', // chỉ cho ký tự hợp lệ
+                // kiểm tra không rỗng đã có 'required'
             ],
         ]);
 
