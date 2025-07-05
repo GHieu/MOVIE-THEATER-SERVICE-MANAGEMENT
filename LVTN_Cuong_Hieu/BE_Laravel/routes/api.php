@@ -23,7 +23,7 @@ use App\Http\Controllers\Admin\ServiceOrderController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\HistoryTicketController;
 use App\Http\Controllers\Admin\CustomerController;
-
+use App\Http\Controllers\Admin\RevenueController;
 
 
 //Login Admin
@@ -163,6 +163,16 @@ Route::prefix('admin')->group(function () {
 
             // Thống kê tổng quan khách hàng
             Route::get('-statistics', [CustomerController::class, 'statistics']);
+        });
+
+        //Revenue
+        Route::prefix('revenues')->group(function () {
+            Route::get('/daily', [RevenueController::class, 'dailyRevenue']);
+            Route::get('/monthly', [RevenueController::class, 'monthlyRevenue']);
+            Route::get('/yearly', [RevenueController::class, 'yearlyRevenue']);
+            Route::get('/range', [RevenueController::class, 'rangeRevenue']);
+            Route::get('/overview', [RevenueController::class, 'overview']);
+            Route::get('/service-details', [RevenueController::class, 'serviceDetails']);
         });
     });
 });
