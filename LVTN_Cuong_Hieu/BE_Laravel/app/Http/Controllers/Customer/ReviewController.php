@@ -25,8 +25,35 @@ class ReviewController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'movie_id' => 'required|exists:movies,id',
-            'rating' => 'required|numeric|min:1|max:10',
+            'movie_id' => [
+                'required',
+                'integer',      // is numeric, integer check
+                'min:1',        // positive
+                'exists:movies,id'
+            ],
+            'rating' => [
+                'required',
+                'numeric',      // is numeric
+                'min:1',        // range check, positive
+                'max:10',       // range check
+                'regex:/^\d+(\.\d{1,1})?$/', // number format check (tối đa 1 số thập phân)
+            ],
+            'comment' => [
+                'nullable',
+                'string',
+                'min:5',        // min length
+                'max:1000',     // max length
+                'regex:/^[\pL\s0-9\.,!?-]+$/u' // allowed characters, format check
+            ],
+            'created_at' => [
+                'sometimes',
+                'date_format:Y-m-d H:i:s', // valid date format
+                'date',                    // valid date
+                'before_or_equal:now'      // past/future date check
+            ]
+        ], [
+            'rating.regex' => 'Điểm đánh giá chỉ cho phép tối đa 1 số thập phân.',
+            'comment.regex' => 'Nội dung chỉ được chứa chữ, số và một số ký tự đặc biệt.',
         ]);
 
         $customerId = Auth::guard('customer')->id();

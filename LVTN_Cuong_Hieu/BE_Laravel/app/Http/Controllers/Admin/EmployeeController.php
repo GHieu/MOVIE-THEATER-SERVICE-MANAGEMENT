@@ -30,17 +30,55 @@ class EmployeeController extends Controller
                 'string',
                 'min:3',
                 'max:255',
-                'regex:/^[\pL\s]+$/u' // Chỉ chữ và khoảng trắng
+                'regex:/^[\pL\s\-\.]+$/u' // Chữ, khoảng trắng, -, .
             ],
             'phone' => [
                 'required',
                 'string',
+                'min:8',
                 'max:20',
-                'regex:/^(0|\+84)[0-9]{9,10}$/' // Định dạng số điện thoại VN
+                'regex:/^(0|\+84)[0-9]{8,19}$/' // Định dạng số điện thoại VN
             ],
-            'position' => 'required|string|min:3|max:255',
-            'description' => 'nullable|string|max:1000',
-            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+            'position' => [
+                'required',
+                'string',
+                'min:3',
+                'max:255'
+            ],
+            'description' => [
+                'nullable',
+                'string',
+                'max:1000'
+            ],
+            'image' => [
+                'required',
+                'image',
+                'mimes:jpeg,png,jpg',
+                'max:2048'
+            ],
+            // Ví dụ kiểm tra ngày/tháng/năm sinh (nếu có)
+            // 'birthdate' => [
+            //     'required',
+            //     'date',
+            //     'date_format:Y-m-d',
+            //     'before_or_equal:today',
+            //     'after_or_equal:1950-01-01',
+            //     function ($attribute, $value, $fail) {
+            //         if ($value) {
+            //             $age = \Carbon\Carbon::parse($value)->age;
+            //             if ($age < 18 || $age > 65) {
+            //                 $fail('Tuổi phải từ 18 đến 65.');
+            //             }
+            //         }
+            //     }
+            // ],
+            // 'salary' => [
+            //     'required',
+            //     'numeric', // Là số
+            //     'min:0',   // Số dương
+            //     'max:100000000', // Khoảng giá trị
+            //     'regex:/^\d+(\.\d{1,2})?$/', // Định dạng số thập phân tối đa 2 số lẻ
+            // ],
         ]);
 
         if ($request->hasFile('image')) {
@@ -61,11 +99,42 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|min:3|max:255|regex:/^[\pL\s]+$/u',
-            'phone' => 'sometimes|required|string|max:20|regex:/^(0|\+84)[0-9]{9,10}$/',
-            'position' => 'sometimes|required|string|min:3|max:255',
-            'description' => 'nullable|string|max:1000',
-            'image' => 'sometimes|image|mimes:jpeg,png,jpg|max:2048'
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:3',
+                'max:255',
+                'regex:/^[\pL\s\-\.]+$/u'
+            ],
+            'phone' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:8',
+                'max:20',
+                'regex:/^(0|\+84)[0-9]{8,19}$/'
+            ],
+            'position' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:3',
+                'max:255'
+            ],
+            'description' => [
+                'nullable',
+                'string',
+                'max:1000'
+            ],
+            'image' => [
+                'sometimes',
+                'image',
+                'mimes:jpeg,png,jpg',
+                'max:2048'
+            ],
+            // 'birthdate' => [ ... ] // như trên nếu có
+            // 'salary' => [ ... ] // như trên nếu có
         ]);
 
         if ($request->hasFile('image')) {

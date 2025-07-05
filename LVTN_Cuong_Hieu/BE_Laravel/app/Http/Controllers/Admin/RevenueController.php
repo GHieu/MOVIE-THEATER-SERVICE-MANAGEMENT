@@ -17,6 +17,14 @@ class RevenueController extends Controller
      */
     public function dailyRevenue(Request $request)
     {
+        $request->validate([
+            'date' => [
+                'nullable',
+                'date_format:Y-m-d', // Kiểm tra định dạng ngày tháng hợp lệ
+                'date',              // Kiểm tra ngày hợp lệ
+                'before_or_equal:today' // Ngày không vượt quá hôm nay (quá khứ/hiện tại)
+            ]
+        ]);
         try {
             $date = $request->get('date', Carbon::today()->format('Y-m-d'));
 
@@ -97,6 +105,12 @@ class RevenueController extends Controller
      */
     public function monthlyRevenue(Request $request)
     {
+        $request->validate([
+            'month' => [
+                'nullable',
+                'regex:/^\d{4}\-(0[1-9]|1[0-2])$/', // Định dạng YYYY-MM
+            ]
+        ]);
         try {
             $month = $request->get('month', Carbon::now()->format('Y-m'));
 
@@ -166,6 +180,15 @@ class RevenueController extends Controller
      */
     public function yearlyRevenue(Request $request)
     {
+        $request->validate([
+            'year' => [
+                'nullable',
+                'digits:4',      // Độ dài 4 ký tự
+                'integer',       // Số nguyên
+                'min:2000',      // Khoảng giá trị (ví dụ từ năm 2000)
+                'max:' . date('Y') // Không vượt quá năm hiện tại
+            ]
+        ]);
         try {
             $year = $request->get('year', Carbon::now()->format('Y'));
 
@@ -235,6 +258,21 @@ class RevenueController extends Controller
      */
     public function rangeRevenue(Request $request)
     {
+        $request->validate([
+            'start_date' => [
+                'required',
+                'date_format:Y-m-d', // Định dạng ngày tháng hợp lệ
+                'date',              // Ngày hợp lệ
+                'before_or_equal:end_date', // Start <= End
+            ],
+            'end_date' => [
+                'required',
+                'date_format:Y-m-d',
+                'date',
+                'after_or_equal:start_date',
+                'before_or_equal:today' // Không vượt quá hôm nay
+            ]
+        ]);
         try {
             $startDate = $request->get('start_date');
             $endDate = $request->get('end_date');
@@ -406,6 +444,14 @@ class RevenueController extends Controller
      */
     public function serviceDetails(Request $request)
     {
+        $request->validate([
+            'date' => [
+                'nullable',
+                'date_format:Y-m-d',
+                'date',
+                'before_or_equal:today'
+            ]
+        ]);
         try {
             $date = $request->get('date', Carbon::today()->format('Y-m-d'));
 

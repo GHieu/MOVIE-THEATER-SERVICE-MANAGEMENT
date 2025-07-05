@@ -117,29 +117,92 @@ class CustomerController extends Controller
         $customer = Customer::findOrFail($id);
 
         $validatedData = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'birthdate' => 'sometimes|nullable|date',
-            'gender' => 'sometimes|nullable|in:male,female,other',
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:2', // Độ dài tối thiểu
+                'max:255', // Độ dài tối đa
+                'regex:/^[\pL\s\-\.]+$/u' // Ký tự cho phép: chữ, khoảng trắng, -, .
+            ],
+            'birthdate' => [
+                'sometimes',
+                'nullable',
+                'date', // Ngày hợp lệ
+                'date_format:Y-m-d', // Định dạng ngày
+                'before_or_equal:today', // Không được là ngày trong tương lai
+                'after_or_equal:1955-01-01', // Khoảng thời gian hợp lệ
+                // Kiểm tra tuổi tối thiểu/tối đa (ví dụ: 10 <= tuổi <= 70)
+                function ($attribute, $value, $fail) {
+                    if ($value) {
+                        $age = \Carbon\Carbon::parse($value)->age;
+                        if ($age < 10 || $age > 70) {
+                            $fail('Tuổi phải từ 10 đến 70.');
+                        }
+                    }
+                }
+            ],
+            'gender' => [
+                'sometimes',
+                'nullable',
+                'in:male,female,other'
+            ],
             'phone' => [
                 'sometimes',
                 'required',
                 'string',
+                'min:8',
                 'max:20',
+                'regex:/^0[0-9]{7,19}$/', // Định dạng số điện thoại Việt Nam, bắt đầu bằng 0
                 Rule::unique('customers')->ignore($customer->id)
             ],
-            'address' => 'sometimes|nullable|string|max:500',
+            'address' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'min:5',
+                'max:500'
+            ],
             'email' => [
                 'sometimes',
                 'required',
                 'email',
                 'max:255',
+                'min:6',
+                'regex:/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/', // Định dạng email
                 Rule::unique('customers')->ignore($customer->id)
             ],
-            'password' => 'sometimes|nullable|string|min:8|confirmed',
+            'password' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'min:8',
+                'max:70',
+                'regex:/^[A-Za-z0-9!@#$%^&*()_+=-]+$/', // Ký tự cho phép
+                'confirmed'
+            ],
             // Thông tin thành viên
-            'member_type' => 'sometimes|nullable|in:Silver,Gold,Diamond',
-            'point' => 'sometimes|nullable|integer|min:0',
-            'total_points' => 'sometimes|nullable|integer|min:0'
+            'member_type' => [
+                'sometimes',
+                'nullable',
+                'in:Silver,Gold,Diamond'
+            ],
+            'point' => [
+                'sometimes',
+                'nullable',
+                'numeric', // Là số
+                'integer', // Số nguyên
+                'min:0',   // Số dương
+                'max:1000000' // Khoảng giá trị (ví dụ tối đa 1 triệu)
+            ],
+            'total_points' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'integer',
+                'min:0',
+                'max:10000000'
+            ]
         ]);
 
         // Cập nhật thông tin khách hàng

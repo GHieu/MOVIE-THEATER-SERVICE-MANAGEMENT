@@ -18,6 +18,7 @@ class PromotionController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            // Không rỗng, độ dài, định dạng, ký tự cho phép, regex
             'title' => [
                 'required',
                 'string',
@@ -26,14 +27,41 @@ class PromotionController extends Controller
                 'regex:/^[a-zA-Z0-9\s\-]+$/'
             ],
             'description' => 'required|string|min:10|max:1000',
-            'discount_percent' => 'required|numeric|between:0,100',
-            'discount_amount' => 'required|numeric|min:0',
+            // Số thập phân, khoảng giá trị, is numeric, positive/negative check
+            'discount_percent' => [
+                'required',
+                'numeric',           // is numeric
+                'min:0',             // positive
+                'max:100',           // range check
+                'regex:/^\d+(\.\d{1,2})?$/' // number format check (tối đa 2 số thập phân)
+            ],
+            // Số, số dương, is numeric, integer/decimal check
+            'discount_amount' => [
+                'required',
+                'numeric',           // is numeric
+                'min:0',             // positive
+                'regex:/^\d+(\.\d{1,2})?$/' // number format check
+            ],
             'apply_to' => 'required|string|in:ticket,service,gift',
-            'start_date' => 'required|date|before_or_equal:end_date',
-            'end_date' => 'required|date|after_or_equal:start_date',
+            // Định dạng ngày tháng hợp lệ, valid date, range check, start <= end, future/past date check
+            'start_date' => [
+                'required',
+                'date_format:Y-m-d', // valid date format
+                'date',              // valid date
+                'before_or_equal:end_date', // start <= end
+                'after_or_equal:today'      // future or today
+            ],
+            'end_date' => [
+                'required',
+                'date_format:Y-m-d',
+                'date',
+                'after_or_equal:start_date'
+            ],
             'status' => 'required|boolean',
         ], [
-            'title.regex' => 'Tiêu đề chỉ được chứa chữ, số, khoảng trắng và dấu gạch ngang.'
+            'title.regex' => 'Tiêu đề chỉ được chứa chữ, số, khoảng trắng và dấu gạch ngang.',
+            'discount_percent.regex' => 'Phần trăm giảm giá phải là số, tối đa 2 chữ số thập phân.',
+            'discount_amount.regex' => 'Số tiền giảm giá phải là số, tối đa 2 chữ số thập phân.',
         ]);
 
         if ($validator->fails()) {

@@ -20,9 +20,30 @@ class MembershipController extends Controller
         $types = ['Silver', 'Gold', 'Diamond'];
 
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,id',
-            'point' => 'required|integer|min:0|max:100000',
-            'total_points' => 'nullable|integer|min:0|max:100000', // ✅ Thêm dòng này
+            'customer_id' => [
+                'required',
+                'numeric', // Là số
+                'integer', // Số nguyên
+                'min:1',   // Số dương
+                'exists:customers,id'
+            ],
+            'point' => [
+                'required',
+                'numeric', // Là số
+                'integer', // Số nguyên
+                'min:0',   // Số không âm
+                'max:100000' // Khoảng giá trị
+            ],
+            'total_points' => [
+                'nullable',
+                'numeric',
+                'integer',
+                'min:0',
+                'max:100000'
+            ],
+            // Nếu có trường ngày bắt đầu/kết thúc:
+            // 'start_date' => 'nullable|date|date_format:Y-m-d|before_or_equal:end_date',
+            // 'end_date'   => 'nullable|date|date_format:Y-m-d|after_or_equal:start_date',
         ]);
 
         if ($validator->fails()) {
@@ -56,8 +77,22 @@ class MembershipController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'point' => 'nullable|integer|min:0|max:100000',
-            'total_points' => 'nullable|integer|min:0|max:100000',
+            'point' => [
+                'nullable',
+                'numeric',
+                'integer',
+                'min:0',
+                'max:100000'
+            ],
+            'total_points' => [
+                'nullable',
+                'numeric',
+                'integer',
+                'min:0',
+                'max:100000'
+            ],
+            // 'start_date' => 'nullable|date|date_format:Y-m-d|before_or_equal:end_date',
+            // 'end_date'   => 'nullable|date|date_format:Y-m-d|after_or_equal:start_date',
         ]);
 
         if ($validator->fails()) {

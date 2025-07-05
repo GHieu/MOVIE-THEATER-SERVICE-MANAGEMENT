@@ -21,9 +21,39 @@ class SeatController extends Controller
         $seat = Seat::findOrFail($id);
 
         $validated = $request->validate([
-            'seat_type' => 'required|string|in:standard,vip,couple',
-            'price' => 'required|numeric|min:0|max:500000',
-            'status' => 'required|string|in:available,reserved,broken'
+            'seat_type' => [
+                'required',
+                'string',
+                'in:standard,vip,couple'
+            ],
+            'price' => [
+                'required',
+                'numeric',      // is numeric
+                'min:0',        // positive
+                'max:500000',   // range check
+                'regex:/^\d+(\.\d{1,2})?$/', // number format check (tối đa 2 số thập phân)
+            ],
+            'status' => [
+                'required',
+                'string',
+                'in:available,reserved,broken'
+            ],
+            'seat_row' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:1',
+                'max:2',
+                'regex:/^[A-Z]{1,2}$/', // allowed characters: chỉ chữ cái in hoa, 1-2 ký tự
+            ],
+            'seat_number' => [
+                'sometimes',
+                'required',
+                'numeric',      // is numeric
+                'integer',      // integer check
+                'min:1',        // positive
+                'max:100'       // range check
+            ]
         ]);
 
         $seat->update($validated);

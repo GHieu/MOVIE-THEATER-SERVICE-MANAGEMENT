@@ -10,10 +10,34 @@ class ServiceOrderController extends Controller
     public function createServiceOrder(Request $request)
     {
         $validated = $request->validate([
-            'ticket_id' => 'required|exists:tickets,id',
-            'service_id' => 'required|exists:services,id',
-            'quantity' => 'required|integer|min:1|max:10',
-            'promotion_id' => 'nullable|exists:promotions,id'
+            'ticket_id' => [
+                'required',
+                'numeric',      // is numeric
+                'integer',      // integer check
+                'min:1',        // positive
+                'exists:tickets,id'
+            ],
+            'service_id' => [
+                'required',
+                'numeric',
+                'integer',
+                'min:1',
+                'exists:services,id'
+            ],
+            'quantity' => [
+                'required',
+                'numeric',
+                'integer',
+                'min:1',        // positive
+                'max:10'        // range check
+            ],
+            'promotion_id' => [
+                'nullable',
+                'numeric',
+                'integer',
+                'min:1',
+                'exists:promotions,id'
+            ]
         ]);
 
         $serviceOrder = ServiceOrder::create($validated);

@@ -36,7 +36,24 @@ class ProfileController extends Controller
                 'max:20',
                 'regex:/^[0-9+\-\s]+$/'
             ],
-            'address' => 'sometimes|nullable|string|min:5|max:255'
+            'address' => 'sometimes|nullable|string|min:5|max:255',
+            // Kiểm tra số, số nguyên dương, khoảng giá trị, min/max age
+            'age' => [
+                'sometimes',
+                'required',
+                'numeric',      // is numeric
+                'integer',      // integer check
+                'min:20',       // min age
+                'max:70'       // max age
+            ],
+            // Kiểm tra ngày sinh hợp lệ, định dạng, quá khứ, range
+            'birthday' => [
+                'sometimes',
+                'required',
+                'date_format:Y-m-d', // định dạng ngày tháng hợp lệ
+                'date',              // ngày hợp lệ
+                'before:today',      // ngày trong quá khứ
+            ],
         ]);
 
         $admin->update($validated);

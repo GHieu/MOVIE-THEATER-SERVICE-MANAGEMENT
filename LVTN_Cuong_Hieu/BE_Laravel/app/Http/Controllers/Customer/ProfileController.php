@@ -21,9 +21,40 @@ class ProfileController extends Controller
         $customer = Auth::guard('customer')->user();
 
         $validated = $request->validate([
-            'email' => 'sometimes|email|unique:customers,email,' . $customer->id,
-            'phone' => 'sometimes|regex:/^0[0-9]{9}$/|unique:customers,phone,' . $customer->id,
-            'address' => 'sometimes|string|max:100',
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                'max:100',
+                'unique:customers,email,' . $customer->id
+            ],
+            'phone' => [
+                'sometimes',
+                'required',
+                'regex:/^0[0-9]{9}$/', // number format check
+                'unique:customers,phone,' . $customer->id
+            ],
+            'address' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:5',
+                'max:100'
+            ],
+            'age' => [
+                'sometimes',
+                'required',
+                'integer',      // integer check
+                'min:10',       // min age
+                'max:120'       // max age
+            ],
+            'birthday' => [
+                'sometimes',
+                'required',
+                'date_format:Y-m-d', // valid date format
+                'date',              // valid date
+                'before:today'       // past date check
+            ]
         ]);
 
         $customer->update($validated);
@@ -43,10 +74,14 @@ class ProfileController extends Controller
             'current_password' => 'required',
             'new_password' => [
                 'required',
+                'string',
                 'min:6',
+                'max:70',
                 'confirmed',
-                'regex:/^(?=.*[A-Z])(?=.*\d).+$/'
+                'regex:/^(?=.*[A-Z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+=-]+$/'
             ],
+        ], [
+            'new_password.regex' => 'Mật khẩu phải chứa ít nhất 1 chữ hoa và 1 số, chỉ cho phép ký tự hợp lệ.',
         ]);
 
         if (!Hash::check($request->current_password, $customer->password)) {

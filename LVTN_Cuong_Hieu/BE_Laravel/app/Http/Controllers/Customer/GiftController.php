@@ -25,7 +25,19 @@ class GiftController extends Controller
     public function exchange(Request $request)
     {
         $request->validate([
-            'gift_id' => 'required|exists:gifts,id'
+            'gift_id' => [
+                'required',
+                'integer',      // is numeric, integer check
+                'min:1',        // positive
+                'exists:gifts,id'
+            ],
+            'quantity' => [
+                'nullable',
+                'numeric',      // is numeric
+                'integer',      // integer check
+                'min:1',        // positive
+                'max:10'        // range check
+            ]
         ]);
 
         $customerId = Auth::guard('customer')->id();
