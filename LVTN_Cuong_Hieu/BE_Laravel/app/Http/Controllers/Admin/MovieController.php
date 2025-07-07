@@ -68,7 +68,7 @@ class MovieController extends Controller
                 'in:P,T13,T16,T18'
             ],
             // Định dạng URL, độ dài tối đa
-            'trailer_url' => 'nullable|url|max:255',
+            'trailer_url' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-matroska|max:51200', // ~50MB,
             // Định dạng ngày tháng hợp lệ, ngày trong tương lai, range check
             'release_date' => [
                 'required',
@@ -97,6 +97,9 @@ class MovieController extends Controller
             $validated['banner'] = $request->file('banner')->store('banners', 'public');
         }
 
+        if ($request->hasFile('trailer')) {
+            $validated['trailer'] = $request->file('trailer')->store('trailers', 'public');
+        }
         $movie = Movie::create($validated);
         return response()->json($movie, 201);
     }
@@ -135,7 +138,7 @@ class MovieController extends Controller
                 'required',
                 'in:P,T13,T16,T18'
             ],
-            'trailer_url' => 'nullable|url|max:255',
+            'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-matroska|max:51200',
             'release_date' => [
                 'sometimes',
                 'required',
@@ -161,6 +164,10 @@ class MovieController extends Controller
 
         if ($request->hasFile('banner')) {
             $validated['banner'] = $request->file('banners')->store('banners', 'public');
+        }
+
+        if ($request->hasFile('trailer')) {
+            $validated['trailer'] = $request->file('trailer')->store('trailers', 'public');
         }
         $movie->update($validated);
         return response()->json($movie);

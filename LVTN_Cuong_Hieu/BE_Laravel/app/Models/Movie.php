@@ -36,4 +36,10 @@ class Movie extends Model
     {
         return $this->hasMany(Showtime::class);
     }
+
+    public function getTrailerUrlAttribute()
+    {
+        return $this->trailer_url ? asset('storage/' . $this->trailer_url) : null;
+    }
+
 }
