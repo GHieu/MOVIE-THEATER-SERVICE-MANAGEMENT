@@ -71,4 +71,40 @@ class SeatController extends Controller
             'message' => 'Loại ghế, giá và trạng thái đã thành công'
         ]);
     }
+
+    // Lấy tất cả suất chiếu của 1 phòng (room_id)
+    public function getShowtimesByRoom($room_id)
+    {
+        $showtimes = \App\Models\Showtime::with('movie:id,title')
+            ->where('room_id', $room_id)
+            ->orderByDesc('start_time')
+            ->get();
+
+        return response()->json($showtimes);
+    }
+
+    // Lấy trạng thái ghế của suất chiếu
+    public function getSeatsStatusByShowtime($showtime_id)
+    {
+        $showtime = \App\Models\Showtime::with('room.seats')->findOrFail($showtime_id);
+        $seats = $showtime->room->seats;
+
+        $statuses = \DB::table('showtime_seat_statuses')
+            ->where('showtime_id', $showtime_id)
+            ->pluck('status', 'seat_id');
+
+        $result = $seats->map(function ($seat) use ($statuses) {
+            return [
+                'id' => $seat->id,
+                'row' => $seat->seat_row,
+                'number' => $seat->seat_number,
+                'type' => $seat->seat_type,
+                'price' => $seat->price,
+                'status' => $statuses[$seat->id] ?? 'available'
+            ];
+        });
+
+        return response()->json($result);
+    }
+
 }

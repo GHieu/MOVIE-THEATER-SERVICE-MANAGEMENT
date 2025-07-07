@@ -54,6 +54,8 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}', [SeatController::class, 'update']);
             Route::get('/count/{room_id}', [SeatController::class, 'countType']);
             Route::post('/settype/{room_id}', [SeatController::class, 'setType']);
+
+
         });
 
         //Room
@@ -64,6 +66,9 @@ Route::prefix('admin')->group(function () {
             Route::delete('/{id}', [RoomController::class, 'destroy']);
             Route::get('/search', [RoomController::class, 'search']);
             Route::get('/stats', [RoomController::class, 'statistics']);
+
+            // Lấy danh sách suất chiếu theo phòng
+            Route::get('/{room_id}/showtimes', [SeatController::class, 'getShowtimesByRoom']);
         });
 
         //Showtime
@@ -74,6 +79,9 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}', [ShowtimeController::class, 'update']);
             Route::delete('/{id}', [ShowtimeController::class, 'destroy']);
             Route::get('/statistic/count', [ShowtimeController::class, 'count']);
+
+            // Lấy trạng thái ghế theo suất chiếu
+            Route::get('{showtime_id}/seats', [SeatController::class, 'getSeatsStatusByShowtime']);
         });
 
         //Blog

@@ -325,4 +325,5 @@ class ShowtimeController extends Controller
             'finished' => (clone $query)->where('end_time', '<', $now)->count()
         ];
     }
+
 }
