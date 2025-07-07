@@ -23,4 +23,9 @@ class Seat extends Model
     {
         return $this->belongsTo(Room::class);
     }
+
+    public function showtimeStatuses()
+    {
+        return $this->hasMany(ShowtimeSeatStatus::class);
+    }
 }

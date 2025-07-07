@@ -12,6 +12,7 @@ use App\Models\Service;
 use App\Models\Showtime;
 use App\Models\Membership;
 use App\Models\Promotion;
+use App\Models\ShowtimeSeatStatus;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -78,6 +79,7 @@ class BookTicketController extends Controller
             $showtime = Showtime::findOrFail($request->showtime_id);
             $room_id = $showtime->room_id;
 
+            // Tính tiền ghế
             $seatTotal = 0;
             foreach ($request->seats as $seatCode) {
                 $row = substr($seatCode, 0, 1);
@@ -87,13 +89,19 @@ class BookTicketController extends Controller
                     ->where('seat_number', $number)
                     ->firstOrFail();
 
-                if ($seat->status !== 'available') {
-                    throw new \Exception("Ghế $seatCode đã được đặt hoặc bị khoá.");
+                $status = ShowtimeSeatStatus::getStatus($showtime->id, $seat->id);
+
+                if ($status === 'reversed') {
+                    throw new \Exception("Ghế $seatCode đã được đặt.");
                 }
 
                 $seatTotal += $seat->price;
             }
 
+            // Tính tiền suất chiếu (mỗi ghế sẽ có giá suất chiếu)
+            $showtimeTotal = $showtime->price * count($request->seats);
+
+            // Tính tiền dịch vụ
             $serviceTotal = 0;
             $servicesData = [];
             if ($request->has('services')) {
@@ -109,6 +117,7 @@ class BookTicketController extends Controller
                 }
             }
 
+            // Tính discount
             $discount = 0;
             $promotion = null;
             if ($request->filled('promotion_id')) {
@@ -119,7 +128,8 @@ class BookTicketController extends Controller
                     ->first();
 
                 if ($promotion) {
-                    $amount = $seatTotal + $serviceTotal;
+                    // Tổng tiền bao gồm cả tiền suất chiếu
+                    $amount = $seatTotal + $showtimeTotal + $serviceTotal;
                     if ($promotion->discount_percent) {
                         $discount = $amount * $promotion->discount_percent / 100;
                     } elseif ($promotion->discount_amount) {
@@ -128,7 +138,8 @@ class BookTicketController extends Controller
                 }
             }
 
-            $total = max(0, $seatTotal + $serviceTotal - $discount);
+            // Tính tổng tiền cuối cùng
+            $total = max(0, $seatTotal + $showtimeTotal + $serviceTotal - $discount);
 
             $ticket = Ticket::create([
                 'customer_id' => $customer->id,
@@ -158,8 +169,7 @@ class BookTicketController extends Controller
                     ->where('seat_number', $number)
                     ->first();
 
-                $seat->status = 'reversed';
-                $seat->save();
+                ShowtimeSeatStatus::updateOrCreateStatus($showtime->id, $seat->id, 'reversed');
 
                 Ticket_details::create([
                     'ticket_id' => $ticket->id,
@@ -182,7 +192,14 @@ class BookTicketController extends Controller
             return response()->json([
                 'message' => 'Đặt vé thành công!',
                 'ticket_id' => $ticket->id,
-                'total' => $total
+                'total' => $total,
+                'breakdown' => [
+                    'seat_total' => $seatTotal,
+                    'showtime_total' => $showtimeTotal,
+                    'service_total' => $serviceTotal,
+                    'discount' => $discount,
+                    'final_total' => $total
+                ]
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -221,8 +238,9 @@ class BookTicketController extends Controller
                     ->first();
 
                 if ($seat) {
-                    $seat->status = 'available';
-                    $seat->save();
+                    ShowtimeSeatStatus::where('showtime_id', $ticket->showtime_id)
+                        ->where('seat_id', $seat->id)
+                        ->update(['status' => 'available']);
                 }
             }
             $ticket->delete();
@@ -269,5 +287,28 @@ class BookTicketController extends Controller
         }
 
         return response()->json($query->orderByDesc('created_at')->get());
+    }
+
+    public function getSeatsByShowtime($showtime_id)
+    {
+        $showtime = Showtime::with('room.seats')->findOrFail($showtime_id);
+        $seats = $showtime->room->seats;
+
+        // Lấy status của từng seat theo showtime
+        $statuses = ShowtimeSeatStatus::where('showtime_id', $showtime_id)
+            ->pluck('status', 'seat_id');
+
+        $result = $seats->map(function ($seat) use ($statuses) {
+            return [
+                'id' => $seat->id,
+                'row' => $seat->seat_row,
+                'number' => $seat->seat_number,
+                'price' => $seat->price,
+                'seat_type' => $seat->seat_type,
+                'status' => $statuses[$seat->id] ?? 'available'
+            ];
+        });
+
+        return response()->json($result);
     }
 }
