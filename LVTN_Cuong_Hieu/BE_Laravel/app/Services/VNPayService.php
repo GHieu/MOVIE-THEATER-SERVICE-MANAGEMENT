@@ -2,16 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\Ticket;
+use Illuminate\Support\Facades\Log;
+
 class VNPayService
 {
-    protected $tmnCode;
-    protected $hashSecret;
-    protected $url;
-    protected $returnUrl;
-    protected $version;
-    protected $command;
-    protected $currencyCode;
-    protected $locale;
+    private $tmnCode;
+    private $hashSecret;
+    private $url;
+    private $returnUrl;
 
     public function __construct()
     {
@@ -19,28 +18,42 @@ class VNPayService
         $this->hashSecret = config('vnpay.hash_secret');
         $this->url = config('vnpay.url');
         $this->returnUrl = config('vnpay.return_url');
-        $this->version = config('vnpay.version');
-        $this->command = config('vnpay.command');
-        $this->currencyCode = config('vnpay.currency_code');
-        $this->locale = config('vnpay.locale');
     }
 
-    public function createPaymentUrl($orderId, $amount, $orderInfo, $ipAddr)
+    /**
+     * Tạo URL thanh toán VNPay
+     */
+    public function createPaymentUrl(Ticket $ticket, $ipAddr = null)
     {
+        $vnp_TxnRef = 'TICKET_' . $ticket->id . '_' . time();
+        $vnp_OrderInfo = "Thanh toan ve xem phim #" . $ticket->id;
+        $vnp_OrderType = "billpayment";
+        $vnp_Amount = $ticket->total_price * 100;
+        $vnp_Locale = "vn";
+        $vnp_BankCode = "";
+        $vnp_IpAddr = $ipAddr ?? request()->ip();
+
+        // Lưu vnpay_order_id
+        $ticket->update(['vnpay_order_id' => $vnp_TxnRef]);
+
         $inputData = array(
-            "vnp_Version" => $this->version,
+            "vnp_Version" => "2.1.0",
             "vnp_TmnCode" => $this->tmnCode,
-            "vnp_Amount" => $amount * 100, // VNPay yêu cầu số tiền * 100
-            "vnp_Command" => $this->command,
+            "vnp_Amount" => $vnp_Amount,
+            "vnp_Command" => "pay",
             "vnp_CreateDate" => date('YmdHis'),
-            "vnp_CurrCode" => $this->currencyCode,
-            "vnp_IpAddr" => $ipAddr,
-            "vnp_Locale" => $this->locale,
-            "vnp_OrderInfo" => $orderInfo,
-            "vnp_OrderType" => 'other',
+            "vnp_CurrCode" => "VND",
+            "vnp_IpAddr" => $vnp_IpAddr,
+            "vnp_Locale" => $vnp_Locale,
+            "vnp_OrderInfo" => $vnp_OrderInfo,
+            "vnp_OrderType" => $vnp_OrderType,
             "vnp_ReturnUrl" => $this->returnUrl,
-            "vnp_TxnRef" => $orderId,
+            "vnp_TxnRef" => $vnp_TxnRef,
         );
+
+        if (isset($vnp_BankCode) && $vnp_BankCode != "") {
+            $inputData['vnp_BankCode'] = $vnp_BankCode;
+        }
 
         ksort($inputData);
         $query = "";
@@ -56,21 +69,35 @@ class VNPayService
             $query .= urlencode($key) . "=" . urlencode($value) . '&';
         }
 
-        $vnpUrl = $this->url . "?" . $query;
-        $vnpSecureHash = hash_hmac('sha512', $hashdata, $this->hashSecret);
-        $vnpUrl .= 'vnp_SecureHash=' . $vnpSecureHash;
+        $vnp_Url = $this->url . "?" . $query;
+        if (isset($this->hashSecret)) {
+            $vnpSecureHash = hash_hmac('sha512', $hashdata, $this->hashSecret);
+            $vnp_Url .= 'vnp_SecureHash=' . $vnpSecureHash;
+        }
 
-        return $vnpUrl;
+        Log::info("VNPay payment URL created for ticket: {$ticket->id}");
+
+        return $vnp_Url;
     }
 
-    public function validateResponse($inputData)
+    /**
+     * Xác thực callback từ VNPay
+     */
+    public function validateCallback($requestData)
     {
-        $vnpSecureHash = $inputData['vnp_SecureHash'];
+        $vnp_SecureHash = $requestData['vnp_SecureHash'] ?? '';
+
+        $inputData = array();
+        foreach ($requestData as $key => $value) {
+            if (substr($key, 0, 4) == "vnp_") {
+                $inputData[$key] = $value;
+            }
+        }
+
         unset($inputData['vnp_SecureHash']);
         ksort($inputData);
-
-        $hashData = "";
         $i = 0;
+        $hashData = "";
         foreach ($inputData as $key => $value) {
             if ($i == 1) {
                 $hashData = $hashData . '&' . urlencode($key) . "=" . urlencode($value);
@@ -82,6 +109,59 @@ class VNPayService
 
         $secureHash = hash_hmac('sha512', $hashData, $this->hashSecret);
 
-        return $secureHash === $vnpSecureHash;
+        return $secureHash == $vnp_SecureHash;
+    }
+
+    /**
+     * Xử lý kết quả thanh toán
+     */
+    public function handlePaymentResult($requestData)
+    {
+        if (!$this->validateCallback($requestData)) {
+            return [
+                'success' => false,
+                'message' => 'Chữ ký không hợp lệ'
+            ];
+        }
+
+        $vnpayOrderId = $requestData['vnp_TxnRef'];
+        $ticket = Ticket::where('vnpay_order_id', $vnpayOrderId)->first();
+
+        if (!$ticket) {
+            return [
+                'success' => false,
+                'message' => 'Không tìm thấy vé'
+            ];
+        }
+
+        $responseCode = $requestData['vnp_ResponseCode'];
+        $transactionNo = $requestData['vnp_TransactionNo'] ?? null;
+
+        if ($responseCode == '00') {
+            // Thanh toán thành công
+            $ticket->update([
+                'status' => 'paid',
+                'vnpay_transaction_no' => $transactionNo,
+                'paid_at' => now()
+            ]);
+
+            Log::info("Payment successful for ticket: {$ticket->id}");
+
+            return [
+                'success' => true,
+                'message' => 'Thanh toán thành công',
+                'ticket' => $ticket
+            ];
+        } else {
+            // Thanh toán thất bại
+            Log::info("Payment failed for ticket: {$ticket->id}, Response code: {$responseCode}");
+
+            return [
+                'success' => false,
+                'message' => 'Thanh toán thất bại',
+                'ticket' => $ticket,
+                'response_code' => $responseCode
+            ];
+        }
     }
 }

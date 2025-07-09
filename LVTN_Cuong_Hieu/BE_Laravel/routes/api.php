@@ -223,6 +223,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ticket/{id}', [App\Http\Controllers\Customer\HistoryTicketController::class, 'show']);
     Route::delete('/ticket/{id}/cancel', [App\Http\Controllers\Customer\BookTicketController::class, 'cancel']);
     Route::get('/tickets/filter', [App\Http\Controllers\Customer\BookTicketController::class, 'filter']);
+    Route::get('showtimes/{showtime_id}/seats', [App\Http\Controllers\Customer\BookTicketController::class, 'getSeatsByShowtime']);
+    Route::get('/payment-status/{ticket_id}', [App\Http\Controllers\Customer\BookTicketController::class, 'checkPaymentStatus']);
 
     //Review
     Route::prefix('/reviews')->group(function () {
@@ -270,3 +272,10 @@ Route::prefix('/blogs')->group(function () {
 
 //Gift
 Route::get('/gifts', [App\Http\Controllers\Customer\GiftController::class, 'index']);
+
+
+// Route callback VNPay (không cần auth)
+Route::get('/vnpay/callback', [App\Http\Controllers\Customer\BookTicketController::class, 'vnpayCallback']);
+
+// Route để hủy vé quá hạn (có thể chạy bằng scheduler)
+Route::post('/cancel-expired-tickets', [App\Http\Controllers\Customer\BookTicketController::class, 'cancelExpiredTickets']);
