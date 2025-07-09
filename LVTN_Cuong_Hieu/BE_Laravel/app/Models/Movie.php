@@ -37,9 +37,9 @@ class Movie extends Model
         return $this->hasMany(Showtime::class);
     }
 
+    // Sửa lại accessor - dùng $attributes thay vì $this->trailer_url
     public function getTrailerUrlAttribute()
     {
-        return $this->trailer_url ? asset('storage/' . $this->trailer_url) : null;
+        return $this->attributes['trailer_url'] ? asset('storage/' . $this->attributes['trailer_url']) : null;
     }
-
 }

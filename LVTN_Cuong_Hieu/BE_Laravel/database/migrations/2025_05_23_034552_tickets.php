@@ -16,13 +16,13 @@ return new class extends Migration {
             $table->foreignId('showtime_id')->constrained('showtimes')->onDelete('cascade');
             $table->foreignId('promotion_id')->nullable()->constrained('promotions')->nullOnDelete();
             $table->decimal('total_price', 10, 2);
-            $table->enum('status', ['pending', 'paid', 'canceled'])->default('pending');
+            $table->enum('status', ['pending', 'paid', 'canceled'])->default('pending')->change();
 
+            $table->string('payment_method')->default('cash')->change();
+            $table->string('vnpay_order_id')->nullable()->after('status');
+            $table->string('vnpay_transaction_no')->nullable()->after('vnpay_order_id');
+            $table->timestamp('paid_at')->nullable()->after('vnpay_transaction_no');
 
-            // $table->string('vnpay_order_id')->nullable()->after('status');
-            // $table->string('vnpay_transaction_no')->nullable()->after('vnpay_order_id');
-            // $table->timestamp('paid_at')->nullable()->after('vnpay_transaction_no');
-            // $table->string('payment_method')->default('cash')->change();
             $table->timestamps();
         });
     }

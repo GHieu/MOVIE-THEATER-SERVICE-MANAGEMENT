@@ -118,7 +118,7 @@ class ShowtimeSeatStatus extends Model
      */
     public static function getStatus($showtimeId, $seatId)
     {
-        $record = static::where('showtime_id', $showtimeId)
+        $record = self::where('showtime_id', $showtimeId)
             ->where('seat_id', $seatId)
             ->first();
 

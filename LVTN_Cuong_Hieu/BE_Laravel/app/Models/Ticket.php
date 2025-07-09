@@ -8,7 +8,21 @@ class Ticket extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['customer_id', 'showtime_id', 'promotion_id', 'total_price', 'status'];
+    protected $fillable = [
+        'customer_id',
+        'showtime_id',
+        'promotion_id',
+        'total_price',
+        'status',
+        'payment_method',
+        'vnpay_order_id',
+        'vnpay_transaction_no',
+        'paid_at'
+    ];
+
+    protected $casts = [
+        'paid_at' => 'datetime',
+    ];
 
     public function customer()
     {
@@ -32,7 +46,7 @@ class Ticket extends Model
 
     public function details()
     {
-        return $this->hasMany(Ticket_details::class);
+        return $this->hasMany(Ticket_details::class, 'ticket_id'); // Đảm bảo dùng đúng tên khoá
     }
 
     public function serviceOrders()
