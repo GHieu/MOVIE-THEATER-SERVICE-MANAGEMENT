@@ -420,6 +420,9 @@ class BookTicketController extends Controller
             }
 
             $ticket->update(['status' => 'cancelled']);
+
+            $ticket->customer->notify(new \App\Notifications\TicketCancelled($ticket));
+
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -491,7 +494,10 @@ class BookTicketController extends Controller
                 }
             }
 
-            // ✅ FIXED: Chỉ cập nhật ShowtimeSeatStatus về 'available'
+            // ✅ Xoá các service orders liên quan
+            $ticket->serviceOrders()->delete();
+
+            // ✅ Xoá trạng thái ghế (ShowtimeSeatStatus)
             foreach ($ticket->details as $detail) {
                 $seat = Seat::where('room_id', $ticket->showtime->room_id)
                     ->whereRaw("CONCAT(seat_row, seat_number) = ?", [$detail->seat_number])
@@ -504,8 +510,13 @@ class BookTicketController extends Controller
                 }
             }
 
-            $ticket->delete();
+            // ✅ Xoá chi tiết vé
+            $ticket->details()->delete();
 
+            // ✅ Xoá vé
+            $ticket->delete();
+            // Gửi thông báo hủy vé
+            $ticket->customer->notify(new \App\Notifications\TicketCancelled($ticket)); // 👈 THÊM DÒNG NÀY
             DB::commit();
             return response()->json(['message' => 'Huỷ vé thành công']);
         } catch (\Exception $e) {

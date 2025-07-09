@@ -15,7 +15,7 @@ class HandleTicketTimeout extends Command
 
     public function handle()
     {
-        $timeoutMinutes = config('vnpay.timeout_express', 15);
+        $timeoutMinutes = config('vnpay.timeout_express', 6);
         $timeoutTime = Carbon::now()->subMinutes($timeoutMinutes);
 
         DB::transaction(function () use ($timeoutTime) {
