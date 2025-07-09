@@ -10,7 +10,7 @@ class MembershipController extends Controller
 {
     public function register(Request $request)
     {
-        $$request->validate([
+        $request->validate([
             'member_type' => [
                 'required',
                 'string',
