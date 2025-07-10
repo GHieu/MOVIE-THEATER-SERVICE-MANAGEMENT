@@ -98,7 +98,6 @@ class BookTicketController extends Controller
                     ->where('seat_row', $row)
                     ->where('seat_number', $number)
                     ->firstOrFail();
-
                 $status = ShowtimeSeatStatus::getStatus($showtime->id, $seat->id);
 
                 if ($status === 'reversed') {
@@ -132,16 +131,18 @@ class BookTicketController extends Controller
             $promotion = null;
             if ($request->filled('promotion_id')) {
                 $promotion = Promotion::where('id', $request->promotion_id)
-                    ->where('status', 'active')
+                    ->where('status', 1) // ✅ Đúng kiểu tinyint (1 = đang hoạt động)
                     ->where('start_date', '<=', now())
                     ->where('end_date', '>=', now())
                     ->first();
 
+
                 if ($promotion) {
                     $amount = $seatTotal + $showtimeTotal + $serviceTotal;
-                    if ($promotion->discount_percent) {
+
+                    if (!is_null($promotion->discount_percent) && $promotion->discount_percent > 0) {
                         $discount = $amount * $promotion->discount_percent / 100;
-                    } elseif ($promotion->discount_amount) {
+                    } elseif (!is_null($promotion->discount_amount) && $promotion->discount_amount > 0) {
                         $discount = $promotion->discount_amount;
                     }
                 }
@@ -171,7 +172,6 @@ class BookTicketController extends Controller
                     ->where('seat_row', $row)
                     ->where('seat_number', $number)
                     ->first();
-
                 // ✅ FIXED: Chỉ cập nhật ShowtimeSeatStatus, không touch bảng seats
                 ShowtimeSeatStatus::updateOrCreateStatus($showtime->id, $seat->id, 'reversed');
 
@@ -318,13 +318,13 @@ class BookTicketController extends Controller
 
         unset($inputData['vnp_SecureHash']);
         ksort($inputData);
-        $i = 0;
         $hashData = "";
+        $i = 0;
         foreach ($inputData as $key => $value) {
             if ($i == 1) {
-                $hashData = $hashData . '&' . urlencode($key) . "=" . urlencode($value);
+                $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
             } else {
-                $hashData = $hashData . urlencode($key) . "=" . urlencode($value);
+                $hashData .= urlencode($key) . "=" . urlencode($value);
                 $i = 1;
             }
         }
@@ -333,7 +333,9 @@ class BookTicketController extends Controller
 
         if ($secureHash == $vnp_SecureHash) {
             $vnpayOrderId = $request->vnp_TxnRef;
-            $ticket = Ticket::with('details')->where('vnpay_order_id', $vnpayOrderId)->firstOrFail();
+            $ticket = Ticket::with(['details', 'showtime.movie', 'showtime.room', 'serviceOrders.service'])
+                ->where('vnpay_order_id', $vnpayOrderId)
+                ->firstOrFail();
 
             if ($request->vnp_ResponseCode == '00') {
                 // Thanh toán thành công
@@ -345,19 +347,16 @@ class BookTicketController extends Controller
                         'paid_at' => now()
                     ]);
 
-                    // ✅ FIXED: Chỉ cập nhật ShowtimeSeatStatus, không touch bảng seats
                     foreach ($ticket->details as $detail) {
                         $seat = Seat::where('room_id', $ticket->showtime->room_id)
                             ->whereRaw("CONCAT(seat_row, seat_number) = ?", [$detail->seat_number])
                             ->first();
 
                         if ($seat) {
-                            // Giữ nguyên 'reversed' thay vì đổi thành 'reserved'
                             ShowtimeSeatStatus::updateOrCreate(
                                 ['showtime_id' => $ticket->showtime_id, 'seat_id' => $seat->id],
-                                ['status' => 'reversed'] // ✅ FIXED: Consistent với logic đặt vé
+                                ['status' => 'reversed']
                             );
-                            // ✅ REMOVED: Không cập nhật bảng seats nữa
                         }
                     }
 
@@ -369,35 +368,58 @@ class BookTicketController extends Controller
                         $this->updateMemberType($membership);
                     }
 
-                    // Gửi thông báo
-                    $ticket->customer->notify(new \App\Notifications\TicketBooked($ticket));
+                    // Chuẩn bị dữ liệu để redirect
+                    $selectedSeats = $ticket->details->pluck('seat_number')->toArray();
+                    $services = $ticket->serviceOrders->map(function ($order) {
+                        return [
+                            'id' => $order->service_id,
+                            'name' => $order->service->name,
+                            'quantity' => $order->quantity
+                        ];
+                    })->toArray();
+
+                    $queryParams = [
+                        'ticket_id' => $ticket->id,
+                        'movie_title' => $ticket->showtime->movie->title,
+                        'cinema_name' => 'AbsoluteCinema', // Thay bằng tên rạp thực tế nếu có
+                        'formatted_date' => $ticket->showtime->start_time->format('d/m/Y'),
+                        'formatted_time' => $ticket->showtime->start_time->format('H:i'),
+                        'selected_seats' => json_encode($selectedSeats),
+                        'final_total' => $ticket->total_price,
+                        'payment_method' => 'vnpay',
+                        'payment_status' => 'completed',
+                        'services' => json_encode($services),
+                        'vnp_TxnRef' => $vnpayOrderId,
+                        'vnp_ResponseCode' => $request->vnp_ResponseCode,
+                        'vnp_TransactionStatus' => $request->vnp_TransactionStatus,
+                    ];
+
+                    if ($ticket->promotion_id) {
+                        $queryParams['voucher'] = $ticket->promotion_id;
+                    }
 
                     DB::commit();
 
-                    return response()->json([
-                        'message' => 'Thanh toán thành công!',
-                        'ticket_id' => $ticket->id,
-                        'status' => 'paid'
-                    ]);
+                    // Redirect đến trang order-success với query parameters
+                    $redirectUrl = config('app.frontend_url') . '/order-success?' . http_build_query($queryParams);
+                    return redirect($redirectUrl);
+
                 } catch (\Exception $e) {
                     DB::rollBack();
-                    return response()->json([
-                        'message' => 'Lỗi khi cập nhật thanh toán: ' . $e->getMessage()
-                    ], 500);
+                    // Redirect với lỗi
+                    $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Lỗi khi cập nhật thanh toán: ' . $e->getMessage());
+                    return redirect($redirectUrl);
                 }
             } else {
-                // Thanh toán thất bại - hủy vé
+                // Thanh toán thất bại
                 $this->cancelUnpaidTicket($ticket);
-                return response()->json([
-                    'message' => 'Thanh toán thất bại! Vé đã được hủy.',
-                    'ticket_id' => $ticket->id,
-                    'status' => 'cancelled'
-                ], 400);
+                $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Thanh toán thất bại! Vé đã được hủy.') . '&ticket_id=' . $ticket->id . '&payment_status=cancelled';
+                return redirect($redirectUrl);
             }
         } else {
-            return response()->json([
-                'message' => 'Chữ ký không hợp lệ'
-            ], 400);
+            // Chữ ký không hợp lệ
+            $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Chữ ký không hợp lệ');
+            return redirect($redirectUrl);
         }
     }
 
