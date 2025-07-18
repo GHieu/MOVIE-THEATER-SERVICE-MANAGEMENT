@@ -12,6 +12,8 @@ import SearchPage from './pages/SearchPage';
 import BlogDetailPage from './pages/BlogDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import BlogsPage from './pages/BlogsPage';
+import TicketManagement from './components/TicketManagement';   
+import MovieSchedulePage from './pages/ShowtimesPage';
 
 import ScrollToTop from './components/another/ScrollToTop';
 import Navbar from './pages/Navbar';
@@ -21,9 +23,12 @@ import AdminLayout from './pages/admin/AdminLayout';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminPrivateRoute from './pages/admin/AdminPrivateRoute';
 
-import { BookingProvider } from './contexts/BookingContext';
-
+import useClearBookingState from "./hooks/useClearBookingState";
+import { MembershipProvider } from './contexts/MembershipContext';
+import MembershipPage from './pages/MembershipPage';
+import AboutPage from './pages/CinemasPage';
 function App() {
+  
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -71,13 +76,14 @@ function App() {
       </div>
     );
   }
-
+  
   return (
     <Router>
+      <MembershipProvider>
       <ScrollToTop />
       
-      {/* Wrap toàn bộ app với BookingProvider */}
-      <BookingProvider>
+  
+        <ClearBookingStateWrapper />
         {/* User UI: Navbar + Footer (only show for non-admin routes) */}
         {!isAdminRoute && <Navbar />}
 
@@ -97,7 +103,10 @@ function App() {
           <Route path="/blogs/:id" element={<BlogDetailPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          
+          <Route path="/profile/historyticket" element={<TicketManagement/>}/>
+          <Route path="/schedule" element={<MovieSchedulePage/>}/>
+          <Route path="/members" element={<MembershipPage/>}/>
+          <Route path="/cinemas" element={<AboutPage/>}/>
           {/* ADMIN ROUTES */}
           <Route
             path="/admin/login"
@@ -144,9 +153,13 @@ function App() {
 
         {/* Footer for user routes only */}
         {!isAdminRoute && <Footer />}
-      </BookingProvider>
+    </MembershipProvider>
     </Router>
   );
 }
+const ClearBookingStateWrapper = () => {
+  useClearBookingState();
+  return null;
+};
 
 export default App;

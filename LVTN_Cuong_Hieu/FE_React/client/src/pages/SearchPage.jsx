@@ -97,8 +97,11 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      
+    <div className="container mx-auto px-4 py-16">
+      <h2 className=" px-5 py-1  font-semibold ">
+        <span className="text-yellow-400 border-l-4 border-yellow-400 pl-2 text-2xl ">Kết quả tìm kiếm</span>
+      </h2>
+      <div className="container mx-auto px-4 ">
 
            
           
@@ -123,12 +126,13 @@ export default function SearchPage() {
             )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-5">
           {displayMovies.map((movie) => (
             <MovieCard key={movie.id} movie={movie} />
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

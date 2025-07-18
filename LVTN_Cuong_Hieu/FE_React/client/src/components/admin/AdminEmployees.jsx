@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import useAdminEmployees from '../../hooks/Admin/useAdminEmployees';
-import { Pencil, Search } from 'lucide-react';
+import { Pencil, Search, AlertCircle } from 'lucide-react';
 
 const AdminEmployees = () => {
   const {
@@ -30,21 +30,141 @@ const AdminEmployees = () => {
 
   const [isAdding, setIsAdding] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const employeeData = editingEmployee || newEmployee;
 
+  // Validation functions
+  const validateName = (name) => {
+    const errors = [];
+    if (!name || name.trim().length === 0) {
+      errors.push('Họ tên là bắt buộc');
+    } else if (name.trim().length < 3) {
+      errors.push('Họ tên phải có ít nhất 3 ký tự');
+    } else if (name.trim().length > 255) {
+      errors.push('Họ tên không được vượt quá 255 ký tự');
+    } else if (!/^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềếểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s\-\.]+$/.test(name.trim())) {
+      errors.push('Họ tên chỉ được chứa chữ cái, khoảng trắng, dấu gạch ngang và dấu chấm');
+    }
+    return errors;
+  };
+
+  const validatePhone = (phone) => {
+    const errors = [];
+    if (!phone || phone.trim().length === 0) {
+      errors.push('Số điện thoại là bắt buộc');
+    } else if (phone.trim().length < 8) {
+      errors.push('Số điện thoại phải có ít nhất 8 ký tự');
+    } else if (phone.trim().length > 20) {
+      errors.push('Số điện thoại không được vượt quá 20 ký tự');
+    } else if (!/^(0|\+84)[0-9]{8,19}$/.test(phone.trim())) {
+      errors.push('Số điện thoại phải có định dạng hợp lệ (bắt đầu bằng 0 hoặc +84)');
+    }
+    return errors;
+  };
+
+  const validatePosition = (position) => {
+    const errors = [];
+    if (!position || position.trim().length === 0) {
+      errors.push('Chức vụ là bắt buộc');
+    } else if (position.trim().length < 3) {
+      errors.push('Chức vụ phải có ít nhất 3 ký tự');
+    } else if (position.trim().length > 255) {
+      errors.push('Chức vụ không được vượt quá 255 ký tự');
+    }
+    return errors;
+  };
+
+  const validateDescription = (description) => {
+    const errors = [];
+    if (description && description.trim().length > 1000) {
+      errors.push('Mô tả không được vượt quá 1000 ký tự');
+    }
+    return errors;
+  };
+
+  const validateImage = (image) => {
+    const errors = [];
+    if (!editingEmployee && (!image || !image.name)) {
+      errors.push('Ảnh là bắt buộc');
+    } else if (image && image.name) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      const maxSize = 2048 * 1024; // 2MB
+
+      if (!allowedTypes.includes(image.type)) {
+        errors.push('Chỉ chấp nhận file ảnh định dạng JPEG, PNG, JPG');
+      }
+      if (image.size > maxSize) {
+        errors.push('Kích thước ảnh không được vượt quá 2MB');
+      }
+    }
+    return errors;
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    const nameErrors = validateName(employeeData.name);
+    if (nameErrors.length > 0) errors.name = nameErrors;
+
+    const phoneErrors = validatePhone(employeeData.phone);
+    if (phoneErrors.length > 0) errors.phone = phoneErrors;
+
+    const positionErrors = validatePosition(employeeData.position);
+    if (positionErrors.length > 0) errors.position = positionErrors;
+
+    const descriptionErrors = validateDescription(employeeData.description);
+    if (descriptionErrors.length > 0) errors.description = descriptionErrors;
+
+    const imageErrors = validateImage(employeeData.image);
+    if (imageErrors.length > 0) errors.image = imageErrors;
+
+    return errors;
+  };
+
   const handleFormSubmit = async () => {
-    if (editingEmployee) {
-      await handleUpdateEmployee();
-    } else {
-      await handleAddEmployee();
-      setIsAdding(false);
+    setIsSubmitting(true);
+    
+    // Validate form
+    const errors = validateForm();
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setIsSubmitting(false);
+      
+      // Scroll to first error
+      const firstErrorField = Object.keys(errors)[0];
+      const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        errorElement.focus();
+      }
+      return;
+    }
+
+    // Clear errors if validation passes
+    setValidationErrors({});
+
+    try {
+      if (editingEmployee) {
+        await handleUpdateEmployee();
+      } else {
+        await handleAddEmployee();
+        setIsAdding(false);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      // Handle API errors here if needed
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleCancel = () => {
     setIsAdding(false);
     setEditingEmployee(null);
+    setValidationErrors({});
     setNewEmployee({
       name: '',
       phone: '',
@@ -62,6 +182,23 @@ const AdminEmployees = () => {
   const handleSearchClear = () => {
     setLocalSearchQuery('');
     setSearchQuery('');
+  };
+
+  // Clear validation error when user starts typing
+  const handleInputChangeWithValidation = (e) => {
+    const { name } = e.target;
+    
+    // Clear error for this field
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
+    // Call original handler
+    handleInputChange(e);
   };
 
   // Tạo array số trang để hiển thị pagination
@@ -89,6 +226,21 @@ const AdminEmployees = () => {
     return pages;
   };
 
+  const ErrorMessage = ({ errors }) => {
+    if (!errors || errors.length === 0) return null;
+    
+    return (
+      <div className="mt-1 text-sm text-red-600">
+        {errors.map((error, index) => (
+          <div key={index} className="flex items-center gap-1">
+            <AlertCircle size={14} />
+            <span>{error}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="p-4">
       {/* Header */}
@@ -99,6 +251,7 @@ const AdminEmployees = () => {
           onClick={() => {
             setIsAdding(true);
             setEditingEmployee(null);
+            setValidationErrors({});
           }}
         >
           Thêm nhân viên
@@ -150,44 +303,77 @@ const AdminEmployees = () => {
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              name="name"
-              value={employeeData.name}
-              onChange={handleInputChange}
-              placeholder="Họ tên"
-              className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="phone"
-              value={employeeData.phone}
-              onChange={handleInputChange}
-              placeholder="Số điện thoại"
-              className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="position"
-              value={employeeData.position}
-              onChange={handleInputChange}
-              placeholder="Chức vụ"
-              className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="file"
-              name="image"
-              onChange={handleInputChange}
-              accept="image/*"
-              className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            {/* Tên */}
+            <div>
+              <input
+                name="name"
+                value={employeeData.name}
+                onChange={handleInputChangeWithValidation}
+                placeholder="Họ tên *"
+                className={`p-2 border rounded-lg w-full focus:outline-none focus:ring-2 ${
+                  validationErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
+              />
+              <ErrorMessage errors={validationErrors.name} />
+            </div>
+
+            {/* Số điện thoại */}
+            <div>
+              <input
+                name="phone"
+                value={employeeData.phone}
+                onChange={handleInputChangeWithValidation}
+                placeholder="Số điện thoại *"
+                className={`p-2 border rounded-lg w-full focus:outline-none focus:ring-2 ${
+                  validationErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
+              />
+              <ErrorMessage errors={validationErrors.phone} />
+            </div>
+
+            {/* Chức vụ */}
+            <div>
+              <input
+                name="position"
+                value={employeeData.position}
+                onChange={handleInputChangeWithValidation}
+                placeholder="Chức vụ *"
+                className={`p-2 border rounded-lg w-full focus:outline-none focus:ring-2 ${
+                  validationErrors.position ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
+              />
+              <ErrorMessage errors={validationErrors.position} />
+            </div>
+
+            {/* Ảnh */}
+            <div>
+              <input
+                type="file"
+                name="image"
+                onChange={handleInputChangeWithValidation}
+                accept="image/jpeg,image/png,image/jpg"
+                className={`p-2 border rounded-lg w-full focus:outline-none focus:ring-2 ${
+                  validationErrors.image ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
+              />
+              <ErrorMessage errors={validationErrors.image} />
+            </div>
           </div>
 
-          <textarea
-            name="description"
-            value={employeeData.description}
-            onChange={handleInputChange}
-            placeholder="Mô tả"
-            rows="3"
-            className="w-full mt-4 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {/* Mô tả */}
+          <div className="mt-4">
+            <textarea
+              name="description"
+              value={employeeData.description}
+              onChange={handleInputChangeWithValidation}
+              placeholder="Mô tả"
+              rows="3"
+              className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                validationErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+              }`}
+            />
+            <ErrorMessage errors={validationErrors.description} />
+          </div>
 
           {/* Preview hình ảnh */}
           {(employeeData.image && typeof employeeData.image === 'string') && (
@@ -204,13 +390,18 @@ const AdminEmployees = () => {
           <div className="flex gap-2 mt-4">
             <button
               onClick={handleFormSubmit}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              disabled={isSubmitting}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              {isSubmitting && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              )}
               {editingEmployee ? 'Cập nhật' : 'Thêm'}
             </button>
             <button
               onClick={handleCancel}
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+              disabled={isSubmitting}
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               Hủy
             </button>
@@ -279,6 +470,7 @@ const AdminEmployees = () => {
                         onClick={() => {
                           setEditingEmployee(emp);
                           setIsAdding(false);
+                          setValidationErrors({});
                         }}
                         title="Chỉnh sửa"
                       >

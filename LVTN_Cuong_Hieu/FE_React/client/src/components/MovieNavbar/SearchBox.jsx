@@ -17,7 +17,7 @@ export default function SearchBox() {
     <div className="relative">
       <button
         onClick={() => setIsSearchOpen(!isSearchOpen)}
-        className="p-2 hover:text-yellow-400 transition"
+        className=" hover:text-yellow-400 transition"
         title="Tìm kiếm phim"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,7 +27,7 @@ export default function SearchBox() {
 
       {isSearchOpen && (
         <div className="absolute right-0 top-full mt-2 w-80   z-50">
-          <div className="p-3">
+          
             <div className="flex">
               <input
                 type="text"
@@ -35,13 +35,13 @@ export default function SearchBox() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
                 placeholder="Tìm kiếm phim..."
-                className="flex-grow px-3 py-1 border border-gray-300 rounded-l-md focus:outline-none  text-sm text-gray-900"
+                className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none  text-sm text-gray-900 hover:border-yellow-400"
                 autoFocus
               />
               
             </div>
           </div>
-        </div>
+       
       )}
     </div>
   );

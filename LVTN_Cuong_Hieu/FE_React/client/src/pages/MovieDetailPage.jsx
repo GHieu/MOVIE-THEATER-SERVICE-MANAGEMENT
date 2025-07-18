@@ -19,7 +19,7 @@ const MovieDetailPage = () => {
   const handlePlayTrailer = () => setShowTrailer(true);
   const handleCloseTrailer = () => setShowTrailer(false);
 
-  if (loading) return <div className="text-center p-8">Đang tải thông tin phim...</div>;
+  if (loading) return <div className="flex justify-center items-center min-h-screen">Đang tải thông tin phim...</div>;
   if (error || !movie) return <div className="text-center text-red-500 p-8">Không tìm thấy phim.</div>;
 
   return (

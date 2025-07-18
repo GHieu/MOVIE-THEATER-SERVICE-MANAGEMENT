@@ -96,6 +96,7 @@ class MovieController extends Controller
         if ($request->hasFile('trailer_url')) {
             $data['trailer_url'] = $request->file('trailer_url')->store('trailers', 'public');
         }
+
         $movie = Movie::create($data);
         return response()->json($movie, 201);
     }
@@ -131,7 +132,7 @@ class MovieController extends Controller
             'studio' => 'nullable|string|max:100',
             'poster' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'banner' => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
-            'trailer_url' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-matroska|max:51200',
+            'trailer_url' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-matroska|max:512000',
             'age' => [
                 'required',
                 'in:P,T13,T16,T18'
@@ -180,7 +181,7 @@ class MovieController extends Controller
         return response()->json($movie);
     }
 
-    // Xóa
+
     public function destroy($id)
     {
         $movie = Movie::findOrFail($id);

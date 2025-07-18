@@ -3,7 +3,7 @@ import React from "react";
 
 export default function NavigationLinks() {
   const navLinks = [
-    { href: "/homepage", label: "Trang chủ"},
+
     { href: "/schedule", label: "Lịch chiếu" },
     { href: "/movies", label: "Phim" },
     { href: "/cinemas", label: "Rạp" },
@@ -13,7 +13,7 @@ export default function NavigationLinks() {
 
   return (
     <div className="hidden md:block">
-      <div className="ml-10 flex items-baseline space-x-4">
+      <div className="ml-10 flex items-baseline space-x-5">
         {navLinks.map((link) => (
           <a
             key={link.href}

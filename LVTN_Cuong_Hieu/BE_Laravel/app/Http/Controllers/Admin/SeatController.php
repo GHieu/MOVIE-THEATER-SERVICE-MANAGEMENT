@@ -92,6 +92,7 @@ class SeatController extends Controller
         $statuses = \DB::table('showtime_seat_statuses')
             ->where('showtime_id', $showtime_id)
             ->pluck('status', 'seat_id');
+        
 
         $result = $seats->map(function ($seat) use ($statuses) {
             return [
@@ -100,7 +101,10 @@ class SeatController extends Controller
                 'number' => $seat->seat_number,
                 'type' => $seat->seat_type,
                 'price' => $seat->price,
-                'status' => $statuses[$seat->id] ?? 'available'
+                'status' => ($seat->status === 'broken') 
+                ? 'broken' 
+                : ($statuses[$seat->id] ?? $seat->status),
+                
             ];
         });
 

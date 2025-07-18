@@ -1,6 +1,7 @@
 import React from 'react';
 import useRooms from '../../hooks/Admin/useAdminRooms';
 import { Pencil} from "lucide-react";
+
 const AdminRooms = () => {
   const {
     editingRoom,
@@ -21,6 +22,22 @@ const AdminRooms = () => {
 
   const handleCancel = () => {
     setEditingRoom(null);
+  };
+
+  // Định nghĩa options cho type
+  const typeOptions = [
+    { value: '2Dsub', label: '2D phụ đề' },
+    { value: '2Dcap', label: '2D lồng tiếng' },
+    { value: '3Dsub', label: '3D phụ đề' },
+    { value: '3Dcap', label: '3D lồng tiếng' },
+    { value: 'IMAXsub', label: 'IMAX phụ đề' },
+    { value: 'IMAXcap', label: 'IMAX lồng tiếng' },
+  ];
+
+  // Hàm chuyển đổi type thành label
+  const getTypeLabel = (type) => {
+    const option = typeOptions.find(opt => opt.value === type);
+    return option ? option.label : type;
   };
 
   return (
@@ -81,21 +98,33 @@ const AdminRooms = () => {
             placeholder="Tên phòng"
             className="mb-2 p-2 border w-full"
           />
-          <input
+          
+          {/* Dropdown cho type với options */}
+          <select
             name="type"
             value={editingRoom.type}
             onChange={handleInputChange}
-            placeholder="Loại phòng (2D, 3D...)"
             className="mb-2 p-2 border w-full"
-          />
+          >
+            <option value="">Chọn loại phòng</option>
+            {typeOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
           <input
             name="seat_count"
             value={editingRoom.seat_count}
             onChange={handleInputChange}
             placeholder="Số ghế"
             type="number"
+            min="1"
+            max="500"
             className="mb-2 p-2 border w-full"
           />
+          
           <select
             name="status"
             value={Number(editingRoom.status)}
@@ -140,7 +169,7 @@ const AdminRooms = () => {
               {currentRooms.map((room) => (
                 <tr key={room.id}>
                   <td className="border p-2">{room.name}</td>
-                  <td className="border p-2">{room.type}</td>
+                  <td className="border p-2">{getTypeLabel(room.type)}</td>
                   <td className="border p-2">{room.seat_count}</td>
                   <td className="border p-2">{room.statusLabel}</td>
                   <td className="border p-2">

@@ -37,47 +37,85 @@ const BookingShowInfo = ({
 };
 
 // components/ShowtimeSelector.js
+// components/ShowtimeSelector.js
 const ShowtimeSelector = ({ 
   otherShowtimes, 
   selectedTime, 
   formatTime, 
-  onChangeShowtime 
+  onChangeShowtime,
+  currentShowtime // Thêm currentShowtime để lấy thông tin room type hiện tại
 }) => {
-  if (otherShowtimes.length === 0) return null;
+  // Lọc các suất chiếu có cùng room type với suất chiếu hiện tại
+  const currentRoomType = currentShowtime?.room?.type;
+  
+  const filteredShowtimes = otherShowtimes.filter(showtime => 
+    showtime.room?.type === currentRoomType
+  );
 
-  // Tạo danh sách tất cả suất chiếu, bao gồm suất hiện tại
+  // Tạo danh sách tất cả suất chiếu cùng room type, bao gồm suất hiện tại
   const allShowtimes = [
-    ...otherShowtimes,
-    { id: 'current', start_time: selectedTime, show_time: selectedTime }
+    ...filteredShowtimes,
+    { 
+      id: 'current', 
+      start_time: selectedTime, 
+      show_time: selectedTime,
+      room: currentShowtime?.room // Thêm thông tin room để đảm bảo consistency
+    }
   ].sort((a, b) => {
     const timeA = a.start_time || a.show_time;
     const timeB = b.start_time || b.show_time;
     return new Date(timeA) - new Date(timeB); // Sắp xếp theo thời gian tăng dần
   });
 
+  // Chỉ ẩn component khi không có suất chiếu nào (bao gồm cả suất hiện tại)
+  if (allShowtimes.length === 0) return null;
+
+  // Nếu chỉ có 1 suất chiếu (suất hiện tại), hiển thị thông báo
+  if (allShowtimes.length === 1) {
+    return (
+      <div className="mb-4">
+        <h2 className="font-semibold text-lg mb-2">Suất chiếu</h2>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            className="px-4 py-2 rounded border font-semibold bg-amber-400 text-black cursor-default"
+          >
+            {formatTime(selectedTime)}
+          </button>
+        </div>
+       
+      </div>
+    );
+  }
+
   return (
     <div className="mb-4">
-      <h2 className="font-semibold text-lg mb-2">Đổi suất chiếu</h2>
+      <h2 className="font-semibold text-lg mb-2">
+        Đổi suất chiếu 
+      </h2>
       <div className="flex gap-2 flex-wrap">
         {allShowtimes.slice(0, 10).map((showtime) => {
           const time = showtime.start_time || showtime.show_time;
           const isSelected = time === selectedTime;
+          const isCurrent = showtime.id === 'current';
 
           return (
             <button
               key={showtime.id}
-              onClick={() => onChangeShowtime(time)}
+              onClick={() => !isSelected && onChangeShowtime(time)}
               className={`px-4 py-2 rounded border font-semibold ${
                 isSelected
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white cursor-default'
                   : 'border-blue-600 text-blue-600 hover:bg-blue-50'
               }`}
+              disabled={isSelected}
+              title={isSelected ? 'Suất chiếu hiện tại' : 'Nhấn để chọn suất chiếu này'}
             >
               {formatTime(time)}
             </button>
           );
         })}
       </div>
+     
     </div>
   );
 };
@@ -122,7 +160,7 @@ const SeatButton = ({
       disabled={isUnavailable}
       title={`Ghế ${seatId} - ${seatInfo.price.toLocaleString('vi-VN')}đ${isVip ? ' (VIP)' : isCouple ? ' (Couple)' : ''} + Giá suất chiếu`}
     >
-      {isCouple ? '💕' : col}
+      {isCouple ? `💕${col}` : col}
     </button>
   );
 };
@@ -203,7 +241,27 @@ const SeatLegend = () => {
     </div>
   );
 };
-
+const translateRoomType = (roomType) => {
+    const roomTypeMap = {
+      '2Dsub': '2D Phụ đề',
+      '2Dcap': '2D Lồng tiếng',
+      '3Dsub': '3D Phụ đề',
+      '3Dcap': '3D Lồng tiếng',
+      'IMAXsub': 'IMAX Phụ đề',
+      'IMAXcap': 'IMAX Lồng tiếng',
+      // Các loại phòng khác
+      'Standard': 'Phòng tiêu chuẩn',
+      'VIP': 'Phòng VIP',
+      'Premium': 'Phòng cao cấp',
+      'Gold': 'Phòng Gold',
+      'Platinum': 'Phòng Platinum',
+      'Director': 'Phòng đạo diễn',
+      'Couple': 'Phòng đôi',
+      'Family': 'Phòng gia đình'
+    };
+    
+    return roomTypeMap[roomType] || roomType || 'Khác';
+  };
 // components/BookingSidebar.js
 const BookingSidebar = ({ 
   movieInfo, 
@@ -234,7 +292,7 @@ const BookingSidebar = ({
         <div className="flex-1">
           <h3 className="font-semibold text-sm leading-tight">{movieInfo.title}</h3>
           <p className="text-sm mt-1">
-            {currentShowtime.room?.type} -{" "}
+            {translateRoomType(currentShowtime.room?.type)} -{" "}
             <span className="bg-orange-400 text-white px-2 py-0.5 rounded text-xs">
               {movieInfo.age}
             </span>

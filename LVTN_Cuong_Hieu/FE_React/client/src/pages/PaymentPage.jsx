@@ -1,227 +1,244 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+// ✅ FIXED: Frontend PaymentPage.jsx - Simplified VNPay handling
 
-
-const paymentMethods = [
-  { id: "onepay", label: "OnePay - Visa, Master, JCB,… / ATM / QR Ngân hàng / Apple Pay", logo: "https://www.onepay.vn/themes/onepay/images/logo.png" },
-  { id: "shopeepay", label: "Ví ShopeePay – Giảm 5K mỗi đơn khi thanh toán", logo: "https://upload.wikimedia.org/wikipedia/vi/f/f8/ShopeePay_Logo.png" },
-  { id: "momo", label: "Ví điện tử MoMo", logo: "https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" },
-  { id: "zalo", label: "ZaloPay – Giảm 50% tối đa 40K", logo: "https://upload.wikimedia.org/wikipedia/vi/e/e5/ZaloPay-logo.png" },
-];
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import BookingSidebar from "../components/BookingSidebar";
+import useCountdownTimer from "../hooks/useCountdownTimer";
+import CountdownTimer from "../components/FoodPageBooking/CountdownTimer";
+import useBooking2 from "../hooks/useBookingSucces";
+import LoadingOverlay from "../components/LoadingOverlay";
+import { useMembership } from "../contexts/MembershipContext";
 
 const PaymentPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const stateData = location.state;
+  const isProcessingRef = useRef(false);
+  const { refetchMembership } = useMembership();
+  
+  const [bookingData, setBookingData] = useState(() => {
+    return location.state || JSON.parse(sessionStorage.getItem("bookingData")) || {};
+  });
 
-  const [voucher, setVoucher] = useState("");
-  const [selectedMethod, setSelectedMethod] = useState("onepay");
+  const [promotionInput, setPromotionInput] = useState(bookingData.promotionId || "");
+  const [selectedMethod, setSelectedMethod] = useState("vnpay");
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  const { movieId, rawDate, rawTime } = bookingData;
 
+  // ✅ REMOVED: VNPay callback handling - BE sẽ handle và redirect
+  // Không cần xử lý callback ở đây nữa
 
-  const {
-    movieTitle,
-    cinemaName,
-    formattedDate,
-    formattedTime,
-    selectedSeats,
-    services,
-    serviceTotal,
-    bookingTotal,
-    finalTotal,
-    timeLeft
-  } = stateData || {};
-
-
-  // Kiểm tra dữ liệu khi component mount
-  useEffect(() => {
-    console.log('PaymentPage mounted, checking booking data...');
-
-    
-    if (!movieTitle || !selectedSeats || selectedSeats.length === 0 || timeLeft <= 0) {
-      navigate('/movies');
-      return null;
-    }
-
-
-    // Kiểm tra thời gian còn lại
-    if (timeLeft <= 0) {
-      console.log('Time expired, redirecting to booking...');
-      alert('Thời gian giữ ghế đã hết. Vui lòng đặt vé lại.');
-      navigate('/booking');
+  const handleTimeExpired = () => {
+    if (isProcessingRef.current) {
+      console.log("Timer hết giờ nhưng đang xử lý thanh toán, không redirect");
       return;
     }
-  }, [ navigate, timeLeft]);
 
-  // Format thời gian còn lại
-  const formatTimeLeft = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    alert("Thời gian giữ ghế đã hết. Vui lòng đặt vé lại.");
+    
+    // Clean up
+    sessionStorage.removeItem("bookingData");
+    sessionStorage.removeItem("seatHoldStartTime");
+    sessionStorage.removeItem("lastBookingInfo");
+
+    navigate(`/booking/${movieId}?date=${rawDate}&time=${rawTime}`);
   };
 
-  // Xử lý thanh toán
-  const handlePayment = () => {
+  // Timer logic
+  const MAX_HOLD_TIME = 3 * 60;
+  const seatHoldStartTime = parseInt(sessionStorage.getItem("seatHoldStartTime"), 10);
+  const now = Date.now();
+  const elapsed = Math.floor((now - seatHoldStartTime) / 1000);
+  const remainingTime = Math.max(0, MAX_HOLD_TIME - elapsed);
+
+  const { timeLeft: countdownTimeLeft, isExpired } = useCountdownTimer(
+    remainingTime,
+    handleTimeExpired,
+    [bookingData?.showtimeId, bookingData?.selectedSeats],
+    isProcessing
+  );
+
+  // Validation effect
+  useEffect(() => {
     if (isProcessing) return;
     
-    if (timeLeft <= 0) {
-      alert('Thời gian giữ ghế đã hết. Vui lòng đặt vé lại.');
-      navigate('/order-success');
-      return;
+    if (
+      !bookingData.movieTitle ||
+      !bookingData.selectedSeats ||
+      bookingData.selectedSeats.length === 0 ||
+      countdownTimeLeft <= 0
+    ) {
+      navigate("/movies");
     }
+  }, [bookingData, countdownTimeLeft, navigate, isProcessing]);
+
+  const {
+    createBooking,
+    bookingData: createdBooking,
+    error: bookingError,
+    loading: bookingLoading
+  } = useBooking2();
+
+  const handleApplyPromotion = () => {
+    const updated = {
+      ...bookingData,
+      promotionId: promotionInput || null,
+    };
+    setBookingData(updated);
+    sessionStorage.setItem("bookingData", JSON.stringify(updated));
+    alert("Đã áp dụng mã khuyến mãi!");
+  };
+
+  // ✅ SIMPLIFIED: Payment handler
+  const handlePayment = async () => {
+    if (isProcessing || isExpired) return;
 
     setIsProcessing(true);
-    
-    // Simulate payment processing
-    setTimeout(() => {
-      console.log('Payment completed, clearing booking data...');
-   
-      navigate('/order-success');
-    }, 1000);
-  };
 
-  // Hiển thị services đã chọn
-  const renderSelectedServices = () => {
-    if (!services || Object.keys(services).length === 0) {
-      return null;
+    try {
+      const validServices = Object.entries(bookingData.services || {})
+        .filter(([_, quantity]) => quantity > 0 && Number.isInteger(Number(quantity)))
+        .map(([service_id, quantity]) => ({
+          service_id: parseInt(service_id),
+          quantity: parseInt(quantity),
+        }));
+
+      const bookingInfo = {
+        showtime_id: bookingData.showtimeId,
+        seats: bookingData.selectedSeats,
+        services: validServices.length > 0 ? validServices : [],
+        promotion_id: promotionInput || null,
+        payment_method: selectedMethod,
+      };
+
+      const result = await createBooking(bookingInfo);
+
+      if (selectedMethod === 'vnpay' && result.payment_url) {
+        // ✅ SIMPLIFIED: Chỉ cần redirect đến VNPay
+        // BE sẽ handle callback và redirect về FE
+        
+        console.log("Redirecting to VNPay:", result.payment_url);
+        alert(result.message || "Đang chuyển đến trang thanh toán VNPay...");
+        
+        // ✅ IMPORTANT: Clean up trước khi redirect
+        sessionStorage.removeItem("bookingData");
+        sessionStorage.removeItem("seatHoldStartTime");
+        sessionStorage.removeItem("lastBookingInfo");
+        
+        // Redirect to VNPay
+        window.location.href = result.payment_url;
+        return;
+      } 
+      // Handle other payment methods
+      else if (result.ticket_id) {
+        // Direct payment success
+        const confirmationData = {
+          ...bookingData,
+          ticketId: result.ticket_id,
+          finalTotal: result.total,
+          paymentMethod: selectedMethod,
+          paymentStatus: 'completed',
+        };
+
+        sessionStorage.removeItem("bookingData");
+        sessionStorage.removeItem("seatHoldStartTime");
+        sessionStorage.removeItem("lastBookingInfo");
+
+        navigate("/order-success", {
+          state: confirmationData,
+          replace: true,
+        });
+
+        refetchMembership();
+      } else {
+        throw new Error("Invalid payment response");
+      }
+
+    } catch (err) {
+      console.error("Payment error:", err);
+      alert("Đặt vé thất bại. Vui lòng thử lại!");
+      setIsProcessing(false);
     }
-
-    const serviceEntries = Object.entries(services).filter(([_, count]) => count > 0);
-    if (serviceEntries.length === 0) return null;
-
-    const totalItems = serviceEntries.reduce((sum, [_, count]) => sum + count, 0);
-
-    return (
-      <div className="text-sm text-gray-800 mb-1">
-        <strong>{totalItems}x</strong> Combo<br />
-        {serviceEntries.map(([serviceId, count]) => (
-          <span key={serviceId}>{count}x Combo {serviceId}, </span>
-        ))}
-      </div>
-    );
   };
 
-
-  
+  // ✅ SIMPLIFIED: Render without complex debug
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
-      <div className="flex-1">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">Khuyến mãi</h2>
-          <div className="flex gap-2 mb-1">
-            <input
-              type="text"
-              value={voucher}
-              onChange={(e) => setVoucher(e.target.value)}
-              placeholder="Mã khuyến mãi"
-              className="border p-2 rounded w-full"
-              disabled={isProcessing}
-            />
-            <button 
-              className="bg-orange-500 text-white px-4 rounded disabled:opacity-50"
-              disabled={isProcessing}
-            >
-              Áp Dụng
-            </button>
+    <>
+      {isProcessing && <LoadingOverlay message="Đang xử lý thanh toán..." />}
+      
+      <div className="max-w-screen-xl mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
+        <div className="flex-1">
+          {/* Promotion section */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-2">Khuyến mãi</h2>
+            <div className="flex gap-2 mb-1">
+              <input
+                type="text"
+                value={promotionInput}
+                onChange={(e) => setPromotionInput(e.target.value)}
+                placeholder="Nhập ID khuyến mãi"
+                className="border p-2 rounded w-full"
+                disabled={isProcessing}
+              />
+              <button
+                type="button"
+                onClick={handleApplyPromotion}
+                className="bg-orange-500 text-white px-4 rounded disabled:opacity-50"
+                disabled={isProcessing}
+              >
+                Áp Dụng
+              </button>
+            </div>
           </div>
-          <p className="text-sm text-gray-500">Lưu ý: Có thể áp dụng nhiều vouchers vào 1 lần thanh toán</p>
-        </div>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Phương thức thanh toán</h2>
-          {paymentMethods.map((method) => (
-            <label
-              key={method.id}
-              className="flex items-center gap-3 p-3 border rounded mb-3 cursor-pointer"
-            >
+          {/* Payment methods */}
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Phương thức thanh toán</h2>
+            <label className="flex items-center gap-3 p-3 border rounded mb-3 cursor-pointer hover:bg-gray-50">
               <input
                 type="radio"
                 name="payment"
-                checked={selectedMethod === method.id}
-                onChange={() => setSelectedMethod(method.id)}
+                checked={selectedMethod === "vnpay"}
+                onChange={() => setSelectedMethod("vnpay")}
                 disabled={isProcessing}
               />
-              <img
-                src={method.logo}
-                alt={method.label}
-                className="w-8 h-8 object-contain"
+              <img 
+                src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" 
+                alt="VNPay" 
+                className="w-8 h-8 object-contain" 
               />
-              <span className="text-sm">{method.label}</span>
+              <span className="text-sm">VNPay</span>
             </label>
-          ))}
-        </div>
-      </div>
-
-      <div className="w-full lg:w-[350px] border rounded p-4 bg-white">
-        <div className="text-sm text-orange-600 font-semibold mb-2">
-          Thời gian giữ ghế: {formatTimeLeft(timeLeft)}
+          </div>
         </div>
 
-        <div className="flex gap-4 mb-4">
-          <img
-            src="https://upload.wikimedia.org/wikipedia/vi/7/7e/Lilo_%26_Stitch_poster.jpg"
-            alt="poster"
-            className="w-20 h-28 object-cover rounded"
+        {/* Sidebar */}
+        <div>
+          {!isProcessing && <CountdownTimer timeLeft={countdownTimeLeft} />}
+
+          <BookingSidebar
+            poster={bookingData.poster}
+            movieTitle={bookingData.movieTitle}
+            age={bookingData.age}
+            roomName={bookingData.roomName}
+            roomType={bookingData.roomType}
+            formattedTime={bookingData.formattedTime}
+            formattedDate={bookingData.formattedDate}
+            selectedSeats={bookingData.selectedSeats}
+            bookingTotal={bookingData.bookingTotal}
+            services={bookingData.servicesList || []}
+            selectedServices={bookingData.services || {}}
+            serviceTotal={bookingData.serviceTotal}
+            finalTotal={bookingData.finalTotal}
+            isExpired={isExpired}
+            onGoBack={() => navigate("/food")}
+            onContinue={handlePayment}
+            buttonLabel="Thanh toán"
+            disabled={isProcessing || bookingLoading}
           />
-          <div>
-            <h3 className="font-semibold">{movieTitle || "Đang tải..."}</h3>
-            <p className="text-sm">2D Lồng Tiếng</p>
-          </div>
         </div>
-
-        <p className="text-sm text-gray-700">{cinemaName || "Galaxy Cinema"}</p>
-        <p className="text-sm">
-          Suất: <strong>{formattedTime || "19:30"}</strong> - {formattedDate || "23/05/2025"}
-        </p>
-
-        <hr className="my-4" />
-
-        <div className="text-sm text-gray-800 mb-1">
-          <strong>{selectedSeats?.length || 0}x</strong> Người lớn - Member<br />
-          Ghế: <strong>{selectedSeats?.join(', ') || "Chưa chọn ghế"}</strong>
-        </div>
-        
-        {renderSelectedServices()}
-
-        <hr className="my-4" />
-
-        {/* Hiển thị chi tiết giá */}
-        <div className="text-sm space-y-1">
-          <div className="flex justify-between">
-            <span>Tiền vé:</span>
-            <span>{bookingTotal?.toLocaleString('vi-VN') || '0'} ₫</span>
-          </div>
-          {serviceTotal > 0 && (
-            <div className="flex justify-between">
-              <span>Combo:</span>
-              <span>{serviceTotal.toLocaleString('vi-VN')} ₫</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-between font-semibold mt-4 text-base border-t pt-2">
-          <span>Tổng cộng</span>
-          <span className="text-orange-500">{finalTotal?.toLocaleString('vi-VN') || '0'} ₫</span>
-        </div>
-        
-        <button 
-          onClick={handlePayment}
-          disabled={isProcessing || timeLeft <= 0}
-          className="mt-6 w-full bg-orange-500 text-white py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isProcessing ? 'Đang xử lý...' : 'Thanh toán'}
-        </button>
-
-        {/* Nút quay lại */}
-        <button 
-          onClick={() => navigate('/food')}
-          disabled={isProcessing}
-          className="mt-2 w-full border border-orange-500 text-orange-500 py-2 rounded disabled:opacity-50"
-        >
-          Quay lại
-        </button>
       </div>
-    </div>
+    </>
   );
 };
 

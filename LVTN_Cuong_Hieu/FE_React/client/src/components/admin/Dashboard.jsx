@@ -11,6 +11,12 @@ import AdminSeats from './AdminSeats';
 import AdminEmployees from './AdminEmployees';
 import AdminMembership from './AdminMembership';
 import AdminProfile from './AdminProfile';
+import AdminTickets from './AdminTickets';
+import AdminReview from './AdminReviews';
+import AdminGift from './AdminGift';
+import AdminGiftHistory from './AdminGiftHistory';
+import AdminRevenue from './AdminRevenue';
+import AdminCus from './AdminCus';
 import { userAdmin } from '../../services/ADMINS/authAdminServices';
 
 const Dashboard = () => {
@@ -67,7 +73,13 @@ const Dashboard = () => {
       showtimes: <AdminShowtimes />,
       seats: <AdminSeats />,
       employees: <AdminEmployees />,
-      memberships: <AdminMembership />
+      cus: <AdminCus/>,
+      memberships: <AdminMembership />,
+      tickets: <AdminTickets/>,
+      reviews: <AdminReview/>,
+      gifts: <AdminGift/>,
+      gifthistory: <AdminGiftHistory/>,
+      revenue: <AdminRevenue/>
     };
     
     return tabComponents[activeTab] || <div>Tab không tồn tại</div>;
@@ -83,7 +95,13 @@ const Dashboard = () => {
       showtimes: 'Quản lý Xuất chiếu',
       seats: 'Quản lý Ghế ngồi',
       employees: 'Quản lý Nhân viên',
-      memberships: 'Quản lý Thành viên'
+      cus: 'Quản lý khách hàng',
+      memberships: 'Quản lý Thành viên',
+      tickets: 'Quản lý vé',
+      reviews: 'Quản lý đánh giá',
+      gifts: 'Quản lý quà tặng',
+      gifthistory: 'QUản lý lich sử đổi quà',
+      revenue: 'Quản lý doanh thu'
     };
     
     return tabTitles[activeTab] || 'Bảng điều khiển';

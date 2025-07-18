@@ -6,10 +6,16 @@ const menuItems = [
   { id: 'services', icon: '🛎️', label: 'Quản lý Dịch vụ' },
   { id: 'blogs', icon: '📝', label: 'Quản lý Blog' },
   { id: 'promotions', icon: '🎫', label: 'Quản lý Khuyến mãi' },
-  { id: 'showtimes', icon: '🕐', label: 'Quản lý Xuất chiếu' },
+  { id: 'showtimes', icon: '🕐', label: 'Quản lý Suất chiếu' },
   { id: 'seats', icon: '🪑', label: 'Quản lý Ghế ngồi' },
   { id: 'employees', icon: '👥', label: 'Quản lý Nhân viên' },
-  { id: 'memberships', icon: '👤', label: 'Quản lý Thành viên' }
+  { id: 'cus', icon: '👤', label: 'Quản lý Khách hàng' },
+  { id: 'memberships', icon: '👤', label: 'Quản lý Thành viên' },
+  { id: 'tickets', icon: '🎟️', label: 'Quản lý Vé' },
+  { id: 'reviews', icon: '⭐  ', label: 'Quản lý đánh giá' },
+  { id: 'gifts', icon: '🎁', label: 'Quản lý quà tặng' },
+  { id: 'gifthistory', icon: '🎁', label: 'Quản lý lịch sử đổi quà tặng' },
+  { id: 'revenue', icon: '📈', label: 'Quản lý doanh thu' }
 ];
 
 const Sidebar = ({ activeTab, setActiveTab }) => {

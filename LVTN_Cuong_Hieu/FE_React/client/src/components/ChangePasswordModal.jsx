@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useForm } from '../hooks/UserProfiles/useForm';
 
 const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }) => {
-  const validate = (values) => {
+  // ✅ SỬA LỖI 1: Dùng useCallback để validate function không thay đổi
+  const validate = useCallback((values) => {
     const errors = {};
     
     if (!values.current_password) {
@@ -22,7 +23,14 @@ const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }) => 
     }
     
     return errors;
-  };
+  }, []); // Empty dependency array
+
+  // ✅ SỬA LỖI 2: Dùng useMemo để initialValues không thay đổi
+  const initialValues = useMemo(() => ({
+    current_password: '',
+    new_password: '',
+    new_password_confirmation: ''
+  }), []); // Empty dependency array
 
   const {
     values,
@@ -34,11 +42,7 @@ const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }) => 
     handleSubmit,
     reset,
     setServerErrors
-  } = useForm({
-    current_password: '',
-    new_password: '',
-    new_password_confirmation: ''
-  }, validate);
+  } = useForm(initialValues, validate);
 
   const onSubmit = async (formData) => {
     try {
@@ -71,12 +75,12 @@ const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }) => 
     handleSubmit(onSubmit);
   };
 
-  // Reset form when modal closes
+  // ✅ SỬA LỖI 3: Bỏ reset khỏi dependencies
   React.useEffect(() => {
     if (!isOpen) {
       reset();
     }
-  }, [isOpen, reset]);
+  }, [isOpen]); // Chỉ phụ thuộc vào isOpen
 
   if (!isOpen) return null;
 

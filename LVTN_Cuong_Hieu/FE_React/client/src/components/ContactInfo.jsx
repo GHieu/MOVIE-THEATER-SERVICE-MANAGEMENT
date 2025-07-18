@@ -1,7 +1,7 @@
 const ContactInfo = () => {
   const contacts = [
     { type: 'HOTLINE hỗ trợ', value: '19002224 (9:00 - 22:00)', icon: '📞' },
-    { type: 'Email', value: 'hotro@galaxystudio.vn', icon: '✉️' },
+    { type: 'Email', value: 'hotro@absolutecinema.vn', icon: '✉️' },
     { type: 'Câu hỏi thường gặp', value: '', icon: '❓' }
   ];
 

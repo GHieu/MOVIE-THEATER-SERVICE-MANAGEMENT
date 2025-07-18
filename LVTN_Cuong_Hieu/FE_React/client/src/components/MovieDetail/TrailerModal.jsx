@@ -1,17 +1,6 @@
-// components/TrailerModal.jsx
 import React from 'react';
 
 const TrailerModal = ({ show, onClose, movie }) => {
-  const getEmbedUrl = (url) => {
-    if (!url) return '';
-    const videoId = url.includes('youtu.be/')
-      ? url.split('youtu.be/')[1]
-      : url.includes('v=')
-      ? url.split('v=')[1].split('&')[0]
-      : '';
-    return `https://www.youtube.com/embed/${videoId}`;
-  };
-
   if (!show || !movie.trailer_url) return null;
 
   return (
@@ -24,15 +13,17 @@ const TrailerModal = ({ show, onClose, movie }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="aspect-video">
-          <iframe
+          <video
             width="100%"
             height="100%"
-            src={getEmbedUrl(movie.trailer_url)}
+            src={movie.trailer_url}
+            controls
+            autoPlay
             title={movie.title}
             style={{ border: 'none' }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
+          >
+            Trình duyệt của bạn không hỗ trợ thẻ video.
+          </video>
         </div>
       </div>
     </div>

@@ -46,13 +46,13 @@ export default function Footer() {
             3/9 Võ Văn Tần, Phường Võ Thị Sáu,<br />
             Quận 3, Tp. Hồ Chí Minh, Việt Nam<br />
             ☎ 028.39.333.303 - 📞 19002224 (9:00 - 22:00)<br />
-            ✉ hotro@galaxystudio.vn
+            ✉ hotro@AbsoluteCinema.vn
           </p>
         </div>
       </div>
 
       <div className="mt-10 text-center text-sm text-gray-400">
-        © {new Date().getFullYear()} Galaxy Cinema. All rights reserved.
+        © {new Date().getFullYear()} AbsoluteCinema. All rights reserved.
       </div>
     </footer>
   );

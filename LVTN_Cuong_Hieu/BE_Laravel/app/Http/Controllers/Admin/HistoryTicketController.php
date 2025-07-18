@@ -85,12 +85,9 @@ class HistoryTicketController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $query = Ticket::with(['showtime.movie', 'showtime.room']);
+        $query = Ticket::with(['showtime.movie', 'showtime.room', 'customer:id,name,email']);
 
-        // Nếu là Customer, chỉ lọc vé của chính họ
-        if ($request->user()->tokenCan('customer')) {
-            $query->where('customer_id', $request->user()->id);
-        }
+        
 
         if ($request->has('from_date')) {
             $query->whereDate('created_at', '>=', $request->from_date);

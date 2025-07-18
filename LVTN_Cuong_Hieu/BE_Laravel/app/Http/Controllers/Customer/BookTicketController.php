@@ -98,7 +98,7 @@ class BookTicketController extends Controller
                     ->where('seat_row', $row)
                     ->where('seat_number', $number)
                     ->firstOrFail();
-                $status = ShowtimeSeatStatus::getStatus($showtime->id, $seat->id);
+$status = ShowtimeSeatStatus::getStatus($showtime->id, $seat->id);
 
                 if ($status === 'reversed') {
                     throw new \Exception("Ghế $seatCode đã được đặt.");
@@ -131,18 +131,16 @@ class BookTicketController extends Controller
             $promotion = null;
             if ($request->filled('promotion_id')) {
                 $promotion = Promotion::where('id', $request->promotion_id)
-                    ->where('status', 1) // ✅ Đúng kiểu tinyint (1 = đang hoạt động)
+                ->where('status', 1)
                     ->where('start_date', '<=', now())
                     ->where('end_date', '>=', now())
                     ->first();
 
-
                 if ($promotion) {
                     $amount = $seatTotal + $showtimeTotal + $serviceTotal;
-
-                    if (!is_null($promotion->discount_percent) && $promotion->discount_percent > 0) {
+                    if ($promotion->discount_percent) {
                         $discount = $amount * $promotion->discount_percent / 100;
-                    } elseif (!is_null($promotion->discount_amount) && $promotion->discount_amount > 0) {
+                    } elseif ($promotion->discount_amount) {
                         $discount = $promotion->discount_amount;
                     }
                 }
@@ -172,7 +170,7 @@ class BookTicketController extends Controller
                     ->where('seat_row', $row)
                     ->where('seat_number', $number)
                     ->first();
-                // ✅ FIXED: Chỉ cập nhật ShowtimeSeatStatus, không touch bảng seats
+// ✅ FIXED: Chỉ cập nhật ShowtimeSeatStatus, không touch bảng seats
                 ShowtimeSeatStatus::updateOrCreateStatus($showtime->id, $seat->id, 'reversed');
 
                 Ticket_details::create([
@@ -250,7 +248,7 @@ class BookTicketController extends Controller
         $vnp_TmnCode = config('vnpay.tmn_code');
         $vnp_HashSecret = config('vnpay.hash_secret');
         $vnp_Url = config('vnpay.url');
-        $vnp_Returnurl = config('vnpay.return_url');
+$vnp_Returnurl = config('vnpay.return_url');
 
         $vnp_TxnRef = 'TICKET_' . $ticket->id . '_' . time();
         $vnp_OrderInfo = "Thanh toán vé xem phim #" . $ticket->id;
@@ -305,123 +303,139 @@ class BookTicketController extends Controller
     }
 
     public function vnpayCallback(Request $request)
-    {
-        $vnp_HashSecret = config('vnpay.hash_secret');
-        $vnp_SecureHash = $request->vnp_SecureHash;
+{
+    $vnp_HashSecret = config('vnpay.hash_secret');
+    $vnp_SecureHash = $request->vnp_SecureHash;
 
-        $inputData = array();
-        foreach ($request->all() as $key => $value) {
-            if (substr($key, 0, 4) == "vnp_") {
-                $inputData[$key] = $value;
-            }
+    $inputData = array();
+    foreach ($request->all() as $key => $value) {
+        if (substr($key, 0, 4) == "vnp_") {
+            $inputData[$key] = $value;
         }
+    }
 
-        unset($inputData['vnp_SecureHash']);
-        ksort($inputData);
-        $hashData = "";
-        $i = 0;
-        foreach ($inputData as $key => $value) {
-            if ($i == 1) {
-                $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
-            } else {
-                $hashData .= urlencode($key) . "=" . urlencode($value);
-                $i = 1;
-            }
+    unset($inputData['vnp_SecureHash']);
+    ksort($inputData);
+    $hashData = "";
+    $i = 0;
+    foreach ($inputData as $key => $value) {
+        if ($i == 1) {
+            $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
+        } else {
+            $hashData .= urlencode($key) . "=" . urlencode($value);
+            $i = 1;
         }
+    }
 
-        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+    $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
-        if ($secureHash == $vnp_SecureHash) {
-            $vnpayOrderId = $request->vnp_TxnRef;
-            $ticket = Ticket::with(['details', 'showtime.movie', 'showtime.room', 'serviceOrders.service'])
-                ->where('vnpay_order_id', $vnpayOrderId)
-                ->firstOrFail();
+    if ($secureHash == $vnp_SecureHash) {
+        $vnpayOrderId = $request->vnp_TxnRef;
+        $ticket = Ticket::with(['details', 'showtime.movie', 'showtime.room', 'serviceOrders.service', 'promotion'])
+            ->where('vnpay_order_id', $vnpayOrderId)
+            ->firstOrFail();
 
-            if ($request->vnp_ResponseCode == '00') {
-                // Thanh toán thành công
-                DB::beginTransaction();
-                try {
-                    $ticket->update([
-                        'status' => 'paid',
-                        'vnpay_transaction_no' => $request->vnp_TransactionNo,
-                        'paid_at' => now()
-                    ]);
+        if ($request->vnp_ResponseCode == '00') {
+            // Thanh toán thành công
+            DB::beginTransaction();
+            try {
+                $ticket->update([
+                    'status' => 'paid',
+                    'vnpay_transaction_no' => $request->vnp_TransactionNo,
+                    'paid_at' => now()
+                ]);
 
-                    foreach ($ticket->details as $detail) {
-                        $seat = Seat::where('room_id', $ticket->showtime->room_id)
-                            ->whereRaw("CONCAT(seat_row, seat_number) = ?", [$detail->seat_number])
-                            ->first();
+                foreach ($ticket->details as $detail) {
+                    $seat = Seat::where('room_id', $ticket->showtime->room_id)
+                        ->whereRaw("CONCAT(seat_row, seat_number) = ?", [$detail->seat_number])
+                        ->first();
 
-                        if ($seat) {
-                            ShowtimeSeatStatus::updateOrCreate(
-                                ['showtime_id' => $ticket->showtime_id, 'seat_id' => $seat->id],
-                                ['status' => 'reversed']
-                            );
-                        }
+                    if ($seat) {
+                        ShowtimeSeatStatus::updateOrCreate(
+                            ['showtime_id' => $ticket->showtime_id, 'seat_id' => $seat->id],
+                            ['status' => 'reversed']
+                        );
                     }
-
-                    // Cập nhật điểm thành viên
-                    $membership = Membership::where('customer_id', $ticket->customer_id)->first();
-                    if ($membership) {
-                        $membership->increment('point', 10);
-                        $membership->increment('total_points', 10);
-                        $this->updateMemberType($membership);
-                    }
-
-                    // Chuẩn bị dữ liệu để redirect
-                    $selectedSeats = $ticket->details->pluck('seat_number')->toArray();
-                    $services = $ticket->serviceOrders->map(function ($order) {
-                        return [
-                            'id' => $order->service_id,
-                            'name' => $order->service->name,
-                            'quantity' => $order->quantity
-                        ];
-                    })->toArray();
-
-                    $queryParams = [
-                        'ticket_id' => $ticket->id,
-                        'movie_title' => $ticket->showtime->movie->title,
-                        'cinema_name' => 'AbsoluteCinema', // Thay bằng tên rạp thực tế nếu có
-                        'formatted_date' => $ticket->showtime->start_time->format('d/m/Y'),
-                        'formatted_time' => $ticket->showtime->start_time->format('H:i'),
-                        'selected_seats' => json_encode($selectedSeats),
-                        'final_total' => $ticket->total_price,
-                        'payment_method' => 'vnpay',
-                        'payment_status' => 'completed',
-                        'services' => json_encode($services),
-                        'vnp_TxnRef' => $vnpayOrderId,
-                        'vnp_ResponseCode' => $request->vnp_ResponseCode,
-                        'vnp_TransactionStatus' => $request->vnp_TransactionStatus,
-                    ];
-
-                    if ($ticket->promotion_id) {
-                        $queryParams['voucher'] = $ticket->promotion_id;
-                    }
-
-                    DB::commit();
-
-                    // Redirect đến trang order-success với query parameters
-                    $redirectUrl = config('app.frontend_url') . '/order-success?' . http_build_query($queryParams);
-                    return redirect($redirectUrl);
-
-                } catch (\Exception $e) {
-                    DB::rollBack();
-                    // Redirect với lỗi
-                    $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Lỗi khi cập nhật thanh toán: ' . $e->getMessage());
-                    return redirect($redirectUrl);
                 }
-            } else {
-                // Thanh toán thất bại
-                $this->cancelUnpaidTicket($ticket);
-                $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Thanh toán thất bại! Vé đã được hủy.') . '&ticket_id=' . $ticket->id . '&payment_status=cancelled';
+
+                // Cập nhật điểm thành viên
+                $membership = Membership::where('customer_id', $ticket->customer_id)->first();
+                if ($membership) {
+                    $membership->increment('point', 10);
+                    $membership->increment('total_points', 10);
+                    $this->updateMemberType($membership);
+                }
+
+                // Chuẩn bị dữ liệu để redirect
+                $selectedSeats = $ticket->details->pluck('seat_number')->toArray();
+                
+                // Tạo services data với cả hai format
+                $services = [];
+                $servicesList = [];
+                
+                foreach ($ticket->serviceOrders as $order) {
+                    $services[$order->service_id] = [
+                        'id' => $order->service_id,
+                        'name' => $order->service->name,
+                        'quantity' => $order->quantity,
+                        'price' => $order->service->price
+                    ];
+                    
+                    $servicesList[] = [
+                        'id' => $order->service_id,
+                        'name' => $order->service->name,
+                        'quantity' => $order->quantity,
+                        'price' => $order->service->price,
+                        'total' => $order->service->price * $order->quantity
+                    ];
+                }
+
+                $queryParams = [
+                    'ticket_id' => $ticket->id,
+                    'movie_title' => $ticket->showtime->movie->title,
+                    'cinema_name' => 'AbsoluteCinema', // Thay bằng tên rạp thực tế nếu có
+                    'formatted_date' => $ticket->showtime->start_time->format('d/m/Y'),
+                    'formatted_time' => $ticket->showtime->start_time->format('H:i'),
+                    'selected_seats' => json_encode($selectedSeats),
+                    'final_total' => $ticket->total_price,
+                    'payment_method' => 'vnpay',
+                    'payment_status' => 'completed',
+                    'services' => json_encode($services), // Object format
+                    'services_list' => json_encode($servicesList), // Array format
+                    'vnp_TxnRef' => $vnpayOrderId,
+                    'vnp_ResponseCode' => $request->vnp_ResponseCode,
+                    'vnp_TransactionStatus' => $request->vnp_TransactionStatus,
+                ];
+
+                // Thêm voucher nếu có
+                if ($ticket->promotion_id) {
+                    $queryParams['voucher'] = $ticket->promotion_id;
+                }
+
+                DB::commit();
+
+                // Redirect đến trang order-success với query parameters
+                $redirectUrl = config('app.frontend_url') . '/order-success?' . http_build_query($queryParams);
+                return redirect($redirectUrl);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                // Redirect với lỗi
+                $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Lỗi khi cập nhật thanh toán: ' . $e->getMessage());
                 return redirect($redirectUrl);
             }
         } else {
-            // Chữ ký không hợp lệ
-            $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Chữ ký không hợp lệ');
+            // Thanh toán thất bại
+            $this->cancelUnpaidTicket($ticket);
+            $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Thanh toán thất bại! Vé đã được hủy.') . '&ticket_id=' . $ticket->id . '&payment_status=cancelled';
             return redirect($redirectUrl);
         }
+    } else {
+        // Chữ ký không hợp lệ
+        $redirectUrl = config('app.frontend_url') . '/order-success?error=' . urlencode('Chữ ký không hợp lệ');
+        return redirect($redirectUrl);
     }
+}
 
     private function cancelUnpaidTicket(Ticket $ticket)
     {
@@ -479,7 +493,7 @@ class BookTicketController extends Controller
     }
 
     public function cancelExpiredTickets()
-    {
+{
         $expiredTickets = Ticket::where('status', 'pending')
             ->where('created_at', '<', now()->subMinutes(15))
             ->get();
@@ -494,8 +508,7 @@ class BookTicketController extends Controller
     }
 
     public function cancel($id, Request $request)
-    {
-        $ticket = Ticket::with(['showtime', 'details', 'serviceOrders'])->where('id', $id)
+    {$ticket = Ticket::with(['showtime', 'details', 'serviceOrders'])->where('id', $id)
             ->where('customer_id', $request->user()->id)
             ->firstOrFail();
 
@@ -561,7 +574,7 @@ class BookTicketController extends Controller
                 'date_format:Y-m-d',
                 'date',
                 'after_or_equal:from_date',
-                'before_or_equal:today'
+'before_or_equal:today'
             ]
         ]);
 
