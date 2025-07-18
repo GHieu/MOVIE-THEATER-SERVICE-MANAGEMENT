@@ -54,7 +54,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}', [SeatController::class, 'update']);
             Route::get('/count/{room_id}', [SeatController::class, 'countType']);
             Route::post('/settype/{room_id}', [SeatController::class, 'setType']);
-
+            
 
         });
 
@@ -151,6 +151,9 @@ Route::prefix('admin')->group(function () {
             // Danh sách khách hàng
             Route::get('', [CustomerController::class, 'index']);
 
+                    // Thống kê tổng quan khách hàng
+            Route::get('statistics', [CustomerController::class, 'statistics']);
+
             // Chi tiết khách hàng
             Route::get('/{id}', [CustomerController::class, 'show']);
 
@@ -169,8 +172,7 @@ Route::prefix('admin')->group(function () {
             // Cập nhật điểm thành viên thủ công (Admin)
             Route::post('/{id}/update-points', [CustomerController::class, 'updatePoints']);
 
-            // Thống kê tổng quan khách hàng
-            Route::get('-statistics', [CustomerController::class, 'statistics']);
+    
         });
 
         //Revenue
@@ -206,8 +208,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('rooms/{id}', [App\Http\Controllers\Customer\RoomController::class, 'getRoom']);
 
     //Seat
+    Route::get('showtimes/{showtime_id}/seats', [App\Http\Controllers\Customer\BookTicketController::class, 'getSeatsByShowtime']);
     Route::get('rooms/{room_id}/seats', [App\Http\Controllers\Customer\SeatController::class, 'getSeatsByRoom']);
-
 
 
     //Service
@@ -226,7 +228,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('showtimes/{showtime_id}/seats', [App\Http\Controllers\Customer\BookTicketController::class, 'getSeatsByShowtime']);
     Route::get('/payment-status/{ticket_id}', [App\Http\Controllers\Customer\BookTicketController::class, 'checkPaymentStatus']);
 
-    //Review
+    
+   //Review
     Route::prefix('/reviews')->group(function () {
         Route::post('/', [App\Http\Controllers\Customer\ReviewController::class, 'store']);
     });
@@ -247,11 +250,13 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('/reviews')->group(function () {
     Route::get('/', [App\Http\Controllers\Customer\ReviewController::class, 'index']);
 
+
 });
 
 Route::prefix('membership')->group(function () {
     Route::get('/profile', [App\Http\Controllers\Customer\MembershipController::class, 'profile']);
 });
+
 
 //Showtime
 Route::get('showtimes', [App\Http\Controllers\Customer\ShowtimeController::class, 'getShowtimes']);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   fetchShowtimes, 
   fetchShowtimesByMovie,
@@ -36,6 +36,22 @@ const useShowtimes = () => {
     } catch (error) {
       console.error('Error formatting date:', error, 'Input:', dateString);
       return null;
+    }
+  };
+
+  // Hàm format ngày hiển thị cho user
+  const formatDisplayDate = (dateString) => {
+    if (!isValidDate(dateString)) return '';
+    
+    try {
+      const date = new Date(dateString);
+      const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+      const dayName = dayNames[date.getDay()];
+      const formattedDate = `${dayName}, ${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      return formattedDate;
+    } catch (error) {
+      console.error('Error formatting display date:', error);
+      return '';
     }
   };
 
@@ -126,6 +142,79 @@ const useShowtimes = () => {
     }
   }, []);
 
+  // ✨ MỚI: Lấy danh sách ngày có suất chiếu từ dữ liệu thực tế
+  const getAvailableDates = useMemo(() => {
+    if (!Array.isArray(showtimes) || showtimes.length === 0) {
+      return [];
+    }
+
+    // Lọc ra các ngày duy nhất có suất chiếu
+    const uniqueDates = new Set();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset thời gian về 00:00:00
+
+    showtimes.forEach(showtime => {
+      const dateSource = showtime.start_time || showtime.show_date;
+      if (!dateSource) return;
+
+      const showtimeDate = new Date(dateSource);
+      showtimeDate.setHours(0, 0, 0, 0); // Reset thời gian về 00:00:00
+
+      // Chỉ lấy các ngày từ hôm nay trở đi
+      if (showtimeDate >= today) {
+        const dateKey = formatDateKey(dateSource);
+        if (dateKey) {
+          uniqueDates.add(dateKey);
+        }
+      }
+    });
+
+    // Chuyển đổi thành array và sắp xếp theo thứ tự thời gian
+    const sortedDates = Array.from(uniqueDates)
+      .sort()
+      .map(dateKey => ({
+        value: dateKey,
+        label: formatDisplayDate(dateKey),
+        date: new Date(dateKey)
+      }));
+
+    console.log('Available dates for movie:', sortedDates);
+    return sortedDates;
+  }, [showtimes]);
+
+  // ✨ MỚI: Lấy danh sách thời gian có sẵn cho ngày cụ thể
+  const getAvailableTimesForDate = useCallback((targetDate) => {
+    if (!targetDate || !Array.isArray(showtimes) || showtimes.length === 0) {
+      return [];
+    }
+
+    const times = showtimes
+      .filter(showtime => {
+        const showtimeDate = formatDateKey(showtime.start_time || showtime.show_date);
+        return showtimeDate === targetDate;
+      })
+      .map(showtime => {
+        const startTime = new Date(showtime.start_time);
+        const timeString = startTime.toLocaleTimeString('vi-VN', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+        return {
+          time: timeString,
+          showtime: showtime // Giữ lại thông tin showtime đầy đủ
+        };
+      })
+      .filter((item, index, arr) => 
+        // Remove duplicates based on time
+        arr.findIndex(t => t.time === item.time) === index
+      )
+      .sort((a, b) => a.time.localeCompare(b.time));
+
+    console.log('Available times for date', targetDate, ':', times);
+    return times;
+  }, [showtimes]);
+
   // Lọc lịch chiếu theo ngày (client-side)
   const filterShowtimesByDate = useCallback((targetDate) => {
     return showtimes.filter(showtime => {
@@ -162,7 +251,7 @@ const useShowtimes = () => {
     }, {});
   }, [showtimes]);
 
-  // Nhóm lịch chiếu theo ngày - FIXED
+  // Nhóm lịch chiếu theo ngày
   const groupShowtimesByDate = useCallback(() => {
     if (!Array.isArray(showtimes) || showtimes.length === 0) {
       console.log('No showtimes to group');
@@ -194,12 +283,19 @@ const useShowtimes = () => {
     }, {});
   }, [showtimes]);
 
-  // REMOVED: Auto load effect - không cần thiết và gây lặp vô hạn
-  // useEffect(() => {
-  //   if (!showtimes.length) {
-  //     loadShowtimes();
-  //   }
-  // }, []);
+  // ✨ MỚI: Tìm showtime cụ thể theo ngày và giờ
+  const findShowtimeByDateTime = useCallback((targetDate, targetTime) => {
+    return showtimes.find(showtime => {
+      const showtimeDate = formatDateKey(showtime.start_time || showtime.show_date);
+      const showtimeTime = new Date(showtime.start_time).toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+      
+      return showtimeDate === targetDate && showtimeTime === targetTime;
+    });
+  }, [showtimes]);
 
   return {
     showtimes,
@@ -221,9 +317,16 @@ const useShowtimes = () => {
     groupShowtimesByMovie,
     groupShowtimesByDate,
     
+    // ✨ New enhanced functions
+    getAvailableDates,           // Lấy danh sách ngày có suất chiếu thực tế
+    getAvailableTimesForDate,    // Lấy danh sách giờ chiếu cho ngày cụ thể
+    findShowtimeByDateTime,      // Tìm showtime cụ thể
+    
     // Utility functions
     setShowtimes,
-    setError
+    setError,
+    formatDateKey,
+    formatDisplayDate
   };
 };
 

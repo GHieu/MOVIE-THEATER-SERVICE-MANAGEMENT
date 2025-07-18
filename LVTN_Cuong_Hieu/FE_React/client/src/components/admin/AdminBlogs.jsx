@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import useAdminBlog from '../../hooks/Admin/useAdminBlogs';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, AlertCircle } from 'lucide-react';
 
 const AdminBlog = () => {
   const {
-    blogs, // Danh sách blogs của trang hiện tại
-    currentPage, // Trang hiện tại từ API
-    totalPages, // Tổng số trang từ API
-    totalBlogs, // Tổng số blogs từ API
-    perPage, // Số blogs per page
+    blogs,
+    currentPage,
+    totalPages,
+    totalBlogs,
+    perPage,
     goToPage,
     searchQuery,
     setSearchQuery,
@@ -25,23 +25,139 @@ const AdminBlog = () => {
   } = useAdminBlog();
 
   const [isAdding, setIsAdding] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
   const isEditing = Boolean(editingId);
   const blogData = formData;
 
+  // Validation functions
+  const validateAdminId = (value) => {
+    if (!value || value.toString().trim() === '') {
+      return 'ID Admin là bắt buộc';
+    }
+    if (!/^\d+$/.test(value.toString())) {
+      return 'ID Admin phải là số nguyên';
+    }
+    const numValue = parseInt(value);
+    if (numValue < 1) {
+      return 'ID Admin phải là số dương';
+    }
+    return '';
+  };
+
+  const validateTitle = (value) => {
+    if (!value || value.trim() === '') {
+      return 'Tiêu đề là bắt buộc';
+    }
+    if (value.length < 5) {
+      return 'Tiêu đề phải có ít nhất 5 ký tự';
+    }
+    if (value.length > 100) {
+      return 'Tiêu đề không được vượt quá 100 ký tự';
+    }
+    
+    // Option 1: More permissive regex (allows most characters including Vietnamese)
+    const titleRegex = /^[\p{L}\p{N}\s\.,!?\-]+$/u;
+    
+    // Option 2: Alternative approach - check for forbidden characters instead
+    // const forbiddenChars = /[<>{}[\]\\\/^`~|@#$%&*()+=;:"']/;
+    // if (forbiddenChars.test(value)) {
+    //   return 'Tiêu đề chứa ký tự không được phép';
+    // }
+    
+    if (!titleRegex.test(value)) {
+      return 'Tiêu đề chỉ được chứa chữ cái, số, khoảng trắng và các ký tự . , ! ? -';
+    }
+    return '';
+  };
+
+  const validateContent = (value) => {
+    if (!value || value.trim() === '') {
+      return 'Nội dung là bắt buộc';
+    }
+    if (value.length < 10) {
+      return 'Nội dung phải có ít nhất 10 ký tự';
+    }
+    return '';
+  };
+
+  const validateImage = (file, isRequired = false) => {
+    if (!file && isRequired) {
+      return 'Ảnh là bắt buộc';
+    }
+    if (file && typeof file === 'object' && file.type) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      if (!allowedTypes.includes(file.type)) {
+        return 'Chỉ cho phép file ảnh định dạng JPEG, PNG, JPG';
+      }
+      
+    }
+    return '';
+  };
+
+  // Validate all fields
+  const validateForm = () => {
+    const errors = {};
+    
+    errors.admin_id = validateAdminId(blogData.admin_id);
+    errors.title = validateTitle(blogData.title);
+    errors.content = validateContent(blogData.content);
+    
+    // Chỉ bắt buộc ảnh khi thêm mới
+    const isImageRequired = !isEditing;
+    errors.image = validateImage(blogData.image, isImageRequired);
+    
+    // Loại bỏ các error rỗng
+    Object.keys(errors).forEach(key => {
+      if (!errors[key]) {
+        delete errors[key];
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Enhanced input change handler with validation
+  const handleInputChangeWithValidation = (e) => {
+    handleInputChange(e);
+    
+    // Clear specific field error khi user bắt đầu nhập
+    const { name } = e.target;
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (editingId) {
-      await handleUpdateBlog();
-    } else {
-      await handleAddBlog();
-      setIsAdding(false);
+    
+    // Validate form trước khi submit
+    if (!validateForm()) {
+      return;
+    }
+    
+    try {
+      if (editingId) {
+        await handleUpdateBlog();
+      } else {
+        await handleAddBlog();
+        setIsAdding(false);
+      }
+      // Clear validation errors sau khi submit thành công
+      setValidationErrors({});
+    } catch (err) {
+      console.error('Error submitting form:', err);
     }
   };
 
   const handleCancel = () => {
     setIsAdding(false);
     resetForm();
+    setValidationErrors({});
   };
 
   // Helper function để tạo array số trang cho pagination
@@ -81,10 +197,11 @@ const AdminBlog = () => {
         <h2 className="text-xl font-bold">Quản lý Blog</h2>
         <div className="flex items-center gap-4">
           <button
-            className="bg-green-600 px-4 py-2 text-white rounded"
+            className="bg-green-600 px-4 py-2 text-white rounded hover:bg-green-700 transition-colors"
             onClick={() => {
               setIsAdding(true);
               resetForm();
+              setValidationErrors({});
             }}
           >
             Thêm Blog
@@ -102,67 +219,167 @@ const AdminBlog = () => {
           placeholder="Tìm kiếm theo tiêu đề..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="p-2 border rounded w-full max-w-md"
+          className="p-2 border rounded w-full max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center">
+          <AlertCircle className="mr-2" size={20} />
+          {error}
+        </div>
+      )}
 
-      {/* Form thêm / sửa */}
+      {/* Form thêm / sửa với validation */}
       {(isAdding || editingId) && (
-        <form onSubmit={handleFormSubmit} className="bg-gray-100 p-4 rounded mb-4 space-y-3">
-          <input
-            name="admin_id"
-            value={blogData.admin_id}
-            onChange={handleInputChange}
-            placeholder="ID Admin"
-            className="p-2 border w-full"
-            required
-          />
-          <input
-            name="title"
-            value={blogData.title}
-            onChange={handleInputChange}
-            placeholder="Tiêu đề"
-            className="p-2 border w-full"
-            required
-          />
-          <textarea
-            name="content"
-            value={blogData.content}
-            onChange={handleInputChange}
-            placeholder="Nội dung"
-            className="p-2 border w-full"
-            rows={4}
-            required
-          />
-          <div>
-            <label className="block mb-1">Ảnh blog:</label>
-            <input
-              type="file"
-              name="image"
-              accept="image/*"
-              onChange={handleInputChange}
-              className="p-2 border w-full"
-            />
-            {blogData.image && typeof blogData.image === 'string' && (
-              <img src={blogData.image} alt="Preview" className="w-32 h-20 object-cover mt-2" />
-            )}
-          </div>
+        <div className="bg-gray-100 p-4 rounded mb-4">
+          <h3 className="text-lg font-semibold mb-4">
+            {isEditing ? 'Sửa Blog' : 'Thêm Blog Mới'}
+          </h3>
+          
+          <div className="space-y-4">
+            {/* Admin ID với validation */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                ID Admin <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="admin_id"
+                type="number"
+                value={blogData.admin_id}
+                onChange={handleInputChangeWithValidation}
+                placeholder="ID Admin"
+                className={`p-2 border w-full rounded focus:outline-none focus:ring-2 ${
+                  validationErrors.admin_id 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+                min="1"
+              />
+              {validationErrors.admin_id && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <AlertCircle size={14} className="mr-1" />
+                  {validationErrors.admin_id}
+                </p>
+              )}
+            </div>
 
-          <div className="flex gap-2">
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-              {isEditing ? 'Cập nhật' : 'Thêm'}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="bg-gray-500 text-white px-4 py-2 rounded"
-            >
-              Hủy
-            </button>
+            {/* Title với validation */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Tiêu đề <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="title"
+                value={blogData.title}
+                onChange={handleInputChangeWithValidation}
+                placeholder="Tiêu đề"
+                className={`p-2 border w-full rounded focus:outline-none focus:ring-2 ${
+                  validationErrors.title 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+                maxLength="100"
+              />
+              <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <span>{blogData.title.length}/100 ký tự</span>
+                {validationErrors.title && (
+                  <span className="text-red-500 flex items-center">
+                    <AlertCircle size={14} className="mr-1" />
+                    {validationErrors.title}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Content với validation */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Nội dung <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="content"
+                value={blogData.content}
+                onChange={handleInputChangeWithValidation}
+                placeholder="Nội dung"
+                className={`p-2 border w-full rounded focus:outline-none focus:ring-2 ${
+                  validationErrors.content 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+                rows={4}
+              />
+              <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <span>{blogData.content.length} ký tự</span>
+                {validationErrors.content && (
+                  <span className="text-red-500 flex items-center">
+                    <AlertCircle size={14} className="mr-1" />
+                    {validationErrors.content}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Image với validation */}
+            <div>
+              <label className="block mb-1 text-sm font-medium">
+                Ảnh blog {!isEditing && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="file"
+                name="image"
+                accept="image/jpeg,image/png,image/jpg"
+                onChange={handleInputChangeWithValidation}
+                className={`p-2 border w-full rounded focus:outline-none focus:ring-2 ${
+                  validationErrors.image 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Chỉ chấp nhận file JPEG, PNG, JPG.
+              </p>
+              {validationErrors.image && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <AlertCircle size={14} className="mr-1" />
+                  {validationErrors.image}
+                </p>
+              )}
+              
+              {/* Preview ảnh */}
+              {blogData.image && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600 mb-1">Preview:</p>
+                  {typeof blogData.image === 'string' ? (
+                    <img src={blogData.image} alt="Preview" className="w-32 h-20 object-cover mt-2 rounded" />
+                  ) : (
+                    <img 
+                      src={URL.createObjectURL(blogData.image)} 
+                      alt="Preview" 
+                      className="w-32 h-20 object-cover mt-2 rounded" 
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-2">
+              <button 
+                onClick={handleFormSubmit}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+              >
+                {isEditing ? 'Cập nhật' : 'Thêm'}
+              </button>
+              <button
+                onClick={handleCancel}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+              >
+                Hủy
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       )}
 
       {/* Danh sách blog */}
@@ -201,13 +418,18 @@ const AdminBlog = () => {
                       onClick={() => {
                         handleEditBlog(blog);
                         setIsAdding(false);
+                        setValidationErrors({});
                       }}
                     >
                       <Pencil size={16} />
                     </button>
                     <button
                       className="text-red-600 hover:underline"
-                      onClick={() => handleDeleteBlog(blog.id)}
+                      onClick={() => {
+                        if (window.confirm('Bạn có chắc chắn muốn xóa blog này?')) {
+                          handleDeleteBlog(blog.id);
+                        }
+                      }}
                     >
                       <Trash2 size={16} />
                     </button>

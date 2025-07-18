@@ -42,11 +42,20 @@ const useSeats = () => {
     
     try {
       const data = await fetchSeatsByShowtime(showtimeId, roomId);
-      setSeats(data);
-      console.log('Loaded seats by showtime/room:', data);
+      // Chuẩn hóa dữ liệu để đồng bộ với loadSeatsByRoom
+      const normalizedData = data.map(seat => ({
+        ...seat,
+        seat_row: seat.row || seat.seat_row || "Unknown",
+        seat_number: seat.number || seat.seat_number || "0",
+        seat_type: seat.seat_type || seat.type || "standard",
+        status: seat.status || "available",
+        price: seat.price || 0
+      }));
+      console.log("Loaded seats by showtime (normalized):", normalizedData);
+      setSeats(normalizedData);
     } catch (err) {
       setError(err.message);
-      console.error('Error loading seats by showtime:', err);
+      console.error("Error loading seats by showtime:", err);
     } finally {
       setLoading(false);
     }

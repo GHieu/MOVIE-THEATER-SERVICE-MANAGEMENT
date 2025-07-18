@@ -23,3 +23,15 @@ export const autoSetSeatType = async (roomId) => {
   const res = await apiAdmin.post(`/seats/settype/${roomId}`);
   return res.data;
 };
+
+// Lấy danh sách suất chiếu theo phòng (API mới)
+export const getShowtimesByRoom = async (roomId) => {
+  const res = await apiAdmin.get(`/rooms/${roomId}/showtimes`);
+  return res.data;
+};
+
+// Lấy trạng thái ghế theo suất chiếu (API mới)
+export const getSeatsByShowtime = async (showtimeId) => {
+  const res = await apiAdmin.get(`/showtimes/${showtimeId}/seats`);
+  return res.data;
+};

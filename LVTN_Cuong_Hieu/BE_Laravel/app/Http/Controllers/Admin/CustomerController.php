@@ -79,11 +79,11 @@ class CustomerController extends Controller
     {
         $customer = Customer::with([
             'membership',
-            'reviews.movie:id,title,poster_url',
-            'tickets.showtime.movie:id,title,poster_url',
+            'reviews.movie:id,title,poster',
+            'tickets.showtime.movie:id,title,poster',
             'tickets.showtime.room:id,name',
             'tickets.seat:id,row,number',
-            'tickets.promotion:id,name,discount_percentage',
+            'tickets.promotion:id,description',
             'giftHistories.gift:id,name,point_required'
         ])->findOrFail($id);
 
@@ -265,7 +265,7 @@ class CustomerController extends Controller
         $customer = Customer::findOrFail($id);
 
         $query = $customer->tickets()->with([
-            'showtime.movie:id,title,poster_url,duration',
+            'showtime.movie:id,title,poster,duration',
             'showtime.room:id,name',
             'seat:id,row,number',
             'promotion:id,name,discount_percentage',
@@ -322,7 +322,7 @@ class CustomerController extends Controller
         $customer = Customer::findOrFail($id);
 
         $query = $customer->reviews()->with([
-            'movie:id,title,poster_url',
+            'movie:id,title,poster',
             'customer:id,name'
         ]);
 

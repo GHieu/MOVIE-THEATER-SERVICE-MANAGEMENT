@@ -67,7 +67,7 @@ export const registerUser = async (userData) => {
     
     if (access_token) {
       // Không có customer info trong register response, chỉ lưu token
-      saveAuthData(access_token, null);
+      
       return response.data;
     } else {
       console.warn('Đăng ký thành công nhưng không có token');

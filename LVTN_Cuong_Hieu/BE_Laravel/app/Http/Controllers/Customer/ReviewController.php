@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
-class ReviewController extends Controller
-{
-    public function index()
+    class ReviewController extends Controller
+    {
+        public function index()
     {
         $reviews = Review::with('movie:id,title', 'customer:id,name') // nếu muốn có tên người dùng
             ->orderByDesc('created_at')
@@ -18,9 +18,6 @@ class ReviewController extends Controller
 
         return response()->json($reviews);
     }
-
-
-
 
     public function store(Request $request)
     {

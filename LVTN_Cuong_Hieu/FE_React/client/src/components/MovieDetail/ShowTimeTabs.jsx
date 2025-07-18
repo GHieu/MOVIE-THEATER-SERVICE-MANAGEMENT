@@ -1,116 +1,160 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useShowtimes from "../../hooks/useShowtimes";
+import LoginModal from "../../components/MovieNavbar/LoginModal";
+import RegisterModal from "../../components/MovieNavbar/RegisterModal"; // Import RegisterModal
 
 const ShowTimeTabs = () => {
   const { id: movieId } = useParams();
   const navigate = useNavigate();
   const { showtimes, loadShowtimesByMovie, groupShowtimesByDate, loading, error } = useShowtimes();
   const [selectedDate, setSelectedDate] = useState("");
+  
+  // State cho cả 2 modal - giống như trong Navbar
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [selectedShowtime, setSelectedShowtime] = useState(null);
 
-  // Hàm kiểm tra ngày hợp lệ
-  const isValidDate = (dateStr) => {
-    if (!dateStr) return false;
-    const date = new Date(dateStr);
-    return !isNaN(date.getTime());
+  // Mapping room type từ BE sang tên hiển thị
+  const getRoomTypeName = (type) => {
+    const roomTypeMap = {
+      '2Dsub': '2D Phụ đề',
+      '2Dcap': '2D Lồng tiếng',
+      '3Dsub': '3D Phụ đề',
+      '3Dcap': '3D Lồng tiếng',
+      'IMAXsub': 'IMAX Phụ đề',
+      'IMAXcap': 'IMAX Lồng tiếng'
+    };
+    
+    return roomTypeMap[type] || type || 'Khác';
   };
 
-  // Hàm định dạng ngày cho tab hiển thị
-  const formatDateForDisplay = (dateStr) => {
-    if (!isValidDate(dateStr)) {
-      console.warn('Invalid date string in formatDateForDisplay:', dateStr);
-      return null;
-    }
+  // Hàm kiểm tra trạng thái đăng nhập
+  const isUserLoggedIn = () => {
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    return !!token;
+  };
 
-    try {
-      const date = new Date(dateStr);
-      const today = new Date();
-      
-      // So sánh ngày (bỏ qua thời gian)
-      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const isToday = dateOnly.getTime() === todayOnly.getTime();
-
-      // Tính toán ngày mai
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-      const tomorrowOnly = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
-      const isTomorrow = dateOnly.getTime() === tomorrowOnly.getTime();
-
-      let label;
-      if (isToday) {
-        label = "Hôm nay";
-      } else if (isTomorrow) {
-        label = "Ngày mai";
-      } else {
-        label = date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
-      }
-
-      return {
-        key: dateStr, // YYYY-MM-DD format
-        label: label,
-        weekday: ["CN", "T2", "T3", "T4", "T5", "T6", "T7"][date.getDay()],
-        dateObj: date, // Để sắp xếp
-        isToday: isToday,
-        isTomorrow: isTomorrow
-      };
-    } catch (error) {
-      console.error('Error in formatDateForDisplay:', error, 'Input:', dateStr);
-      return null;
+  // Hàm xử lý khi đăng nhập thành công
+  const handleLoginSuccess = () => {
+    setIsLoginModalOpen(false);
+    // Tiếp tục với booking nếu có showtime được chọn
+    if (selectedShowtime) {
+      proceedToBooking(selectedShowtime);
+      setSelectedShowtime(null);
     }
   };
 
-  // Memoize các tính toán để tránh re-render không cần thiết
-  const availableDates = useMemo(() => {
-    const grouped = groupShowtimesByDate();
-    console.log('Grouped showtimes:', grouped);
-    console.log('All showtimes data:', showtimes);
+  // Hàm thực hiện chuyển hướng đến trang booking
+  const proceedToBooking = (showtime) => {
+    if (!showtime.id) return;
 
-    // Debug: Kiểm tra format ngày
-    showtimes.forEach(showtime => {
-      const originalDate = showtime.start_time || showtime.show_date;
-      const parsedDate = new Date(originalDate);
-      const localDateKey = parsedDate.getFullYear() + '-' + 
-        String(parsedDate.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(parsedDate.getDate()).padStart(2, '0');
-      console.log(`Original: ${originalDate} -> Parsed: ${parsedDate} -> Key: ${localDateKey}`);
+    navigate(`/booking/${movieId}`, {
+      state: {
+        date: selectedDate,
+        time: showtime.start_time || showtime.show_time,
+        showtime,
+      },
     });
+  };
 
-    // Lọc và sắp xếp các ngày
-    const sortedDateKeys = Object.keys(grouped)
-      .filter(dateStr => isValidDate(dateStr)) // Lọc ra các ngày hợp lệ
-      .sort((a, b) => new Date(a) - new Date(b)); // Sắp xếp theo thứ tự tăng dần
+  // Xử lý khi click vào suất chiếu
+  const handleClickShowtime = (showtime) => {
+    // Kiểm tra đăng nhập
+    if (!isUserLoggedIn()) {
+      // Lưu showtime được chọn và hiển thị modal đăng nhập
+      setSelectedShowtime(showtime);
+      setIsLoginModalOpen(true);
+      return;
+    }
 
-    console.log('Sorted date keys:', sortedDateKeys);
+    // Nếu đã đăng nhập, chuyển thẳng đến booking
+    proceedToBooking(showtime);
+  };
 
-    const dates = sortedDateKeys
-      .map(dateStr => formatDateForDisplay(dateStr))
-      .filter(dateInfo => dateInfo !== null) // Lọc ra các dateInfo null
-      .sort((a, b) => a.dateObj - b.dateObj); // Sắp xếp theo thứ tự tăng dần
+  // Hàm đóng tất cả modal - giống như trong Navbar
+  const handleCloseModals = () => {
+    setIsLoginModalOpen(false);
+    setIsRegisterModalOpen(false);
+    setSelectedShowtime(null);
+  };
 
-    console.log('Available dates:', dates);
+  // Hàm chuyển từ Login sang Register - giống như trong Navbar
+  const handleSwitchToRegister = () => {
+    setIsLoginModalOpen(false);
+    setIsRegisterModalOpen(true);
+  };
+
+  // Hàm chuyển từ Register sang Login - giống như trong Navbar
+  const handleSwitchToLogin = () => {
+    setIsRegisterModalOpen(false);
+    setIsLoginModalOpen(true);
+  };
+
+  // Hàm refresh user data - có thể được gọi từ cả 2 modal
+  const refreshUser = () => {
+    console.log('Refresh user data');
+    handleLoginSuccess();
+  };
+
+  // Tạo danh sách 7 ngày liên tiếp từ hôm nay (giống DateTabs)
+  const availableDates = useMemo(() => {
+    const dates = [];
+    const today = new Date();
+    
+    // Fix: Đảm bảo sử dụng múi giờ địa phương nhất quán
+    const todayDateString = today.getFullYear() + '-' + 
+      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(today.getDate()).padStart(2, '0');
+    
+    console.log('Today date string:', todayDateString);
+    
+    for (let i = 0; i < 7; i++) {
+      // Tạo ngày bằng cách thêm ngày trực tiếp thay vì dùng setDate
+      const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      
+      // Tạo date string theo format YYYY-MM-DD
+      const dateStr = currentDate.getFullYear() + '-' + 
+        String(currentDate.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(currentDate.getDate()).padStart(2, '0');
+      
+      // Lấy tên ngày và ngày/tháng
+      const dayName = currentDate.toLocaleDateString('vi-VN', { weekday: 'long' });
+      const dayMonth = currentDate.toLocaleDateString('vi-VN', { 
+        day: '2-digit', 
+        month: 'numeric' 
+      });
+      
+      console.log(`Date ${i}:`, {
+        dateStr,
+        dayName,
+        dayMonth,
+        isToday: i === 0
+      });
+      
+      dates.push({
+        key: dateStr,
+        label: i === 0 ? 'Hôm Nay' : dayName,
+        dayMonth: dayMonth,
+        isToday: i === 0
+      });
+    }
+    
     return dates;
-  }, [showtimes]); // Chỉ phụ thuộc vào showtimes
+  }, []);
 
-  // Load suất chiếu theo movieId - chỉ chạy khi movieId thay đổi
+  // Load suất chiếu theo movieId
   useEffect(() => {
     if (movieId) {
       console.log('Loading showtimes for movie:', movieId);
       loadShowtimesByMovie(movieId);
     }
-  }, [movieId]); // Bỏ loadShowtimesByMovie khỏi dependency để tránh lặp
+  }, [movieId]);
 
-  // Tự động chọn ngày đầu tiên (ưu tiên hôm nay) khi có dữ liệu
+  // Tự động chọn ngày đầu tiên (hôm nay)
   useEffect(() => {
     if (availableDates.length > 0 && !selectedDate) {
-      // Tìm ngày hôm nay trước
-      const todayDate = availableDates.find(date => date.isToday);
-      if (todayDate) {
-        setSelectedDate(todayDate.key);
-      } else {
-        // Nếu không có hôm nay, chọn ngày đầu tiên
-        setSelectedDate(availableDates[0].key);
-      }
+      setSelectedDate(availableDates[0].key); // Luôn chọn hôm nay đầu tiên
     }
   }, [availableDates, selectedDate]);
 
@@ -143,7 +187,6 @@ const ShowTimeTabs = () => {
       const timeA = new Date(a.start_time || a.show_time);
       const timeB = new Date(b.start_time || b.show_time);
       
-      // Nếu có lỗi parse date, đặt về cuối danh sách
       if (isNaN(timeA.getTime())) return 1;
       if (isNaN(timeB.getTime())) return -1;
       
@@ -151,60 +194,15 @@ const ShowTimeTabs = () => {
     });
   };
 
-  // Lọc suất chiếu cho ngày hiện tại (chỉ hiển thị suất chiếu chưa qua)
-  const filterShowtimesForToday = (showtimes, isToday) => {
-    if (!isToday || !Array.isArray(showtimes)) return showtimes;
-    
-    const now = new Date();
-    console.log('Current time:', now);
-    
-    return showtimes.filter(showtime => {
-      const showtimeDate = new Date(showtime.start_time || showtime.show_time);
-      console.log('Showtime:', showtime.start_time || showtime.show_time, 'Parsed date:', showtimeDate, 'Is future?', showtimeDate > now);
-      
-      // Kiểm tra nếu parse date thất bại
-      if (isNaN(showtimeDate.getTime())) {
-        console.warn('Invalid showtime date:', showtime.start_time || showtime.show_time);
-        return true; // Giữ lại nếu không parse được
-      }
-      
-      // Thêm buffer 30 phút để không ẩn suất chiếu sắp bắt đầu
-      const bufferTime = 30 * 60 * 1000; // 30 phút tính bằng milliseconds
-      return showtimeDate.getTime() > (now.getTime() - bufferTime);
-    });
-  };
-
-  // Xử lý khi click vào suất chiếu
-  const handleClickShowtime = (showtime) => {
-  if (!showtime.id) return;
-
-  navigate(`/booking/${movieId}`, {
-    state: {
-      date: selectedDate,
-      time: showtime.start_time || showtime.show_time,
-      showtime,
-    },
-  });
-};
-
-
-  // Memoize suất chiếu được sắp xếp để tránh tính toán lại không cần thiết
+  // Lọc và sắp xếp suất chiếu theo ngày được chọn
   const sortedShowtimes = useMemo(() => {
     const grouped = groupShowtimesByDate();
-    const selectedDateInfo = availableDates.find(date => date.key === selectedDate);
     const showtimesForSelectedDate = grouped[selectedDate] || [];
     
     console.log('Showtimes for selected date:', selectedDate, showtimesForSelectedDate);
-    console.log('Selected date info:', selectedDateInfo);
     
-    // TẠM THỜI TẮT FILTER CHO HÔM NAY ĐỂ DEBUG
-    // const filteredShowtimes = filterShowtimesForToday(showtimesForSelectedDate, selectedDateInfo?.isToday);
-    const filteredShowtimes = showtimesForSelectedDate; // Hiển thị tất cả suất chiếu
-    
-    console.log('Filtered showtimes:', filteredShowtimes);
-    
-    return sortShowtimesByTime(filteredShowtimes);
-  }, [selectedDate, showtimes, availableDates]);
+    return sortShowtimesByTime(showtimesForSelectedDate);
+  }, [selectedDate, showtimes]);
 
   // Hiển thị loading
   if (loading) {
@@ -224,56 +222,64 @@ const ShowTimeTabs = () => {
     );
   }
 
-  // Không có suất chiếu
-  if (availableDates.length === 0) {
-    return (
-      <div className="p-4 text-center">
-        <div className="text-lg text-gray-600">Không có suất chiếu nào cho phim này.</div>
-      </div>
-    );
-  }
-
   const selectedDateInfo = availableDates.find(date => date.key === selectedDate);
 
   return (
-    <div className="p-4">
-      {/* Tabs ngày */}
-      <div className="flex gap-4 border-b pb-2 overflow-x-auto">
-        {availableDates.map(({ key, label, weekday, isToday }) => (
-          <button
-            key={key}
-            onClick={() => setSelectedDate(key)}
-            className={`text-center px-3 py-2 font-bold border-b-2 whitespace-nowrap transition-colors ${
-              selectedDate === key
-                ? "text-blue-600 border-blue-600"
-                : "border-transparent text-gray-600 hover:text-gray-800"
-            } ${isToday ? "bg-blue-50" : ""}`}
-          >
-            <div className={`${isToday ? "text-blue-600 font-bold" : ""}`}>{label}</div>
-            <div className="text-sm">{weekday}</div>
-          </button>
-        ))}
+    <div>
+      {/* Tabs ngày - Sử dụng logic giống DateTabs */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        {availableDates.map(({ key, label, dayMonth, isToday }) => {
+          const isActive = selectedDate === key;
+          
+          console.log(`Tab ${key}: selected=${selectedDate}, active=${isActive}`);
+          
+          return (
+            <button
+              key={key}
+              onClick={() => setSelectedDate(key)}
+              className={`w-28 px-4 py-3 rounded-xl transition-all whitespace-nowrap font-semibold text-sm border-2 ${
+                isActive
+                  ? "bg-amber-300 text-white border-amber-400"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              <div className="text-lg">{label}</div>
+              <div className="text-xs opacity-80">{dayMonth}</div>
+            </button>
+          );
+        })}
       </div>
-
+      
+      <div className="block border-b-4 border-yellow-400"></div>
+      
       {/* Danh sách suất chiếu */}
       <div className="mt-4">
-        <div className="font-semibold text-xl mb-2">2D Phụ đề</div>
-        <div className="flex gap-4 flex-wrap">
-          {sortedShowtimes.map((st) => (
-            <div
-              key={st.id}
-              onClick={() => handleClickShowtime(st)}
-              className="border px-4 py-2 rounded-md shadow-sm hover:shadow-md cursor-pointer transition-shadow hover:border-blue-300"
-            >
-              <div className="text-lg font-bold">
-                {formatTime(st.start_time || st.show_time)}
-              </div>
-              <div className="text-sm text-gray-500">
-                {st.room?.seat_count || st.available_seats || 0} ghế trống
-              </div>
+        {Object.entries(
+          sortedShowtimes.reduce((groups, st) => {
+            const roomType = getRoomTypeName(st.room?.type);
+            if (!groups[roomType]) groups[roomType] = [];
+            groups[roomType].push(st);
+            return groups;
+          }, {})
+        ).map(([roomType, times]) => (
+          <div key={roomType} className="mb-6">
+            <div className="font-semibold text-xl mb-3">{roomType}</div>
+            <div className="flex gap-4 flex-wrap">
+              {times.map((st) => (
+                <div
+                  key={st.id}
+                  onClick={() => handleClickShowtime(st)}
+                  className="border px-4 py-2 rounded-md shadow-sm hover:shadow-md cursor-pointer transition-shadow hover:border-black hover:bg-gray-100"
+                >
+                  <div className="text-lg font-bold">
+                    {formatTime(st.start_time || st.show_time)}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+
         
         {/* Hiển thị khi không có suất chiếu cho ngày được chọn */}
         {sortedShowtimes.length === 0 && (
@@ -285,6 +291,21 @@ const ShowTimeTabs = () => {
           </div>
         )}
       </div>
+
+      {/* LoginModal với khả năng chuyển đổi - giống như trong Navbar */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={handleCloseModals}
+        onSwitchToRegister={handleSwitchToRegister}
+        refreshUser={refreshUser}
+      />
+
+      {/* RegisterModal với khả năng chuyển đổi - giống như trong Navbar */}
+      <RegisterModal 
+        isOpen={isRegisterModalOpen}
+        onClose={handleCloseModals}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
     </div>
   );
 };

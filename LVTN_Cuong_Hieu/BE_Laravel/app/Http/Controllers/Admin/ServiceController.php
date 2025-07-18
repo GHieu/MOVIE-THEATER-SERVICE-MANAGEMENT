@@ -19,7 +19,7 @@ class ServiceController extends Controller
     {
         $validated = $request->validate([
             'name' => [
-                'required',
+                'required', 
                 'string',
                 'min:3',
                 'max:255',

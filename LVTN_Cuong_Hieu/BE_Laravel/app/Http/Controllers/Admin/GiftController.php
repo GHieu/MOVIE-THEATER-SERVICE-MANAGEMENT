@@ -120,13 +120,7 @@ class GiftController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $validated = $validator->validated();
-
-        if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('images', 'public');
-        }
-
-        $gift->update($validated);
+        $gift->update($request->all());
         return response()->json($gift, 200);
     }
 

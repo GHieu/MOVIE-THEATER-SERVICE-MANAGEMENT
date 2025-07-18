@@ -39,6 +39,7 @@ class Showtime extends Model
         return $this->belongsTo(Room::class);
     }
 
+
     /**
      * Relationship với Promotion
      */
@@ -113,7 +114,7 @@ class Showtime extends Model
     {
         return $this->start_time > now() && !$this->tickets()->exists();
     }
-
+    
     public function seatStatuses(): HasMany
     {
         return $this->hasMany(ShowtimeSeatStatus::class);

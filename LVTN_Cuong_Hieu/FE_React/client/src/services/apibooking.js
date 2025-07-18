@@ -18,13 +18,17 @@ export const bookTicket = async (bookingData) => {
   }
 };
 
-// Lấy lịch sử đặt vé
 export const fetchTicketHistory = async () => {
   try {
     const response = await api.get('/tickets/history');
+
+
     return response.data;
+    
   } catch (error) {
     console.error('Error fetching ticket history:', error);
+        console.error('Status:', error.response?.status);
+console.error('Data:', error.response?.data);
     throw error;
   }
 };
@@ -60,6 +64,24 @@ export const filterTickets = async (filters) => {
     return response.data;
   } catch (error) {
     console.error('Error filtering tickets:', error);
+    throw error;
+  }
+};
+export const checkPaymentStatus = async (ticketId) => {
+  try {
+    const response = await api.get(`/payment-status/${ticketId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error checking payment status for ticket ${ticketId}:`, error);
+    throw error;
+  }
+};
+export const vnpayCallback = async (callbackData) => {
+  try {
+    const response = await api.get('/vnpay/callback', { params: callbackData });
+    return response.data;
+  } catch (error) {
+    console.error('Error processing VNPay callback:', error);
     throw error;
   }
 };

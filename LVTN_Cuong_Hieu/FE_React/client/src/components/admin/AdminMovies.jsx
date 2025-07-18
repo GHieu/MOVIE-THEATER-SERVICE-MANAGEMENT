@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { DateRange } from 'react-date-range';
+import { format, addDays, addYears, isAfter, isBefore } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import useMovies from '../../hooks/Admin/useAdminMovies';
-import { Pencil, Trash2, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pencil, Trash2, Search, X, ChevronLeft, ChevronRight, RefreshCw, Clock, Eye, EyeOff, Play, Calendar } from "lucide-react";
+
+// Import CSS cho react-date-range
+import 'react-date-range/dist/styles.css'; // main style file
+import 'react-date-range/dist/theme/default.css'; // theme css file
 
 const AdminMovies = () => {
   const {
@@ -29,27 +36,125 @@ const AdminMovies = () => {
 
   const [isAdding, setIsAdding] = useState(false);
   const [searchInput, setSearchInput] = useState(searchQuery);
+  const [lastAutoUpdate, setLastAutoUpdate] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  
   const movieData = editingMovie || newMovie;
 
-  const handleFormSubmit = async () => {
-    console.log('Form submit with data:', movieData); // Debug log
+  // Date range state
+  const [dateRange, setDateRange] = useState([
+    {
+      startDate: new Date(),
+      endDate: addDays(new Date(), 30),
+      key: 'selection'
+    }
+  ]);
+
+  // Update date range when editing a movie
+  useEffect(() => {
+    if (movieData) {
+      const startDate = movieData.release_date ? new Date(movieData.release_date) : new Date();
+      const endDate = movieData.end_date ? new Date(movieData.end_date) : addDays(startDate, 30);
+      
+      setDateRange([{
+        startDate,
+        endDate,
+        key: 'selection'
+      }]);
+    }
+  }, [movieData?.release_date, movieData?.end_date]);
+
+  // Auto-refresh movies every 5 minutes to check for status updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing movies for status update check...');
+      // This will trigger the auto-update logic in useMovies
+      goToPage(currentPage);
+      setLastAutoUpdate(new Date());
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [currentPage, goToPage]);
+
+  // Handle date range change
+  const handleDateRangeChange = (ranges) => {
+    setDateRange([ranges.selection]);
+    
+    // Update the movie data with formatted dates
+    const startDate = format(ranges.selection.startDate, 'yyyy-MM-dd');
+    const endDate = format(ranges.selection.endDate, 'yyyy-MM-dd');
+    
+    // Create synthetic events for handleInputChange
+    const releaseEvent = {
+      target: {
+        name: 'release_date',
+        value: startDate
+      }
+    };
+    
+    const endEvent = {
+      target: {
+        name: 'end_date',
+        value: endDate
+      }
+    };
+    
+    handleInputChange(releaseEvent);
+    handleInputChange(endEvent);
+  };
+
+  const handleFormSubmit = async (e) => {
+  e.preventDefault(); // Prevent default form submission
+  
+  // Custom validation before sending to API
+  const requiredFields = ['title', 'duration', 'genre', 'director', 'studio', 'age', 'type', 'release_date', 'end_date'];
+  const missingFields = requiredFields.filter(field => !movieData[field] || movieData[field].toString().trim() === '');
+  
+  if (missingFields.length > 0) {
+    alert(`Vui lòng điền đầy đủ thông tin: ${missingFields.join(', ')}`);
+    return;
+  }
+  
+  // Additional custom validation
+  if (movieData.duration < 30 || movieData.duration > 300) {
+    alert('Thời lượng phim phải từ 30 đến 300 phút');
+    return;
+  }
+  
+  if (new Date(movieData.end_date) <= new Date(movieData.release_date)) {
+    alert('Ngày kết thúc phải sau ngày khởi chiếu');
+    return;
+  }
+  
+  console.log('Form submit with data:', movieData);
+  
+  try {
     if (editingMovie) {
       await handleUpdateMovie();
     } else {
       await handleAddMovie();
       setIsAdding(false);
     }
-  };
-
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    // Handle API errors here
+  }
+};
+  
   const handleCancel = () => {
     setIsAdding(false);
     setEditingMovie(null);
     setNewMovie({
       title: '', description: '', duration: '', genre: '',
-      director: '', cast: '', poster: '', banner: '',
+      director: '', cast: '', nation: '', poster: '', banner: '',
       trailer_url: '', release_date: '', end_date: '',
-      status: 0, age: '', type: ''
+      status: 0, age: '', type: '', studio: ''
     });
+    setDateRange([{
+      startDate: new Date(),
+      endDate: addDays(new Date(), 30),
+      key: 'selection'
+    }]);
   };
 
   const handleSearchSubmit = (e) => {
@@ -61,6 +166,95 @@ const AdminMovies = () => {
     setSearchInput('');
     clearSearch();
   };
+
+  const handleManualRefresh = () => {
+    console.log('Manual refresh triggered...');
+    goToPage(currentPage);
+    setLastAutoUpdate(new Date());
+  };
+
+  // Get current date for comparison
+  const getCurrentDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+  
+  // Hàm lấy ngày hiện tại theo múi giờ Việt Nam
+  const getCurrentDateVN = () => {
+    const now = new Date();
+    // Convert to Vietnam timezone (UTC+7)
+    const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    return vnTime.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+  };
+
+  // Hàm so sánh chỉ ngày, bỏ qua giờ
+  const compareDatesOnly = (date1, date2) => {
+    const d1 = new Date(date1 + 'T00:00:00');
+    const d2 = new Date(date2 + 'T00:00:00');
+    
+    return d1.getTime() - d2.getTime();
+  };
+
+  // Check if movie status might need update based on dates
+  const getMovieStatusInfo = (movie) => {
+    const today = getCurrentDateVN(); // Sử dụng múi giờ Việt Nam
+    const releaseDate = movie.release_date;
+    const endDate = movie.end_date;
+    
+    // Debug log
+    console.log('Movie:', movie.title, {
+      today,
+      releaseDate,
+      endDate,
+      currentType: movie.type,
+      currentStatus: movie.status,
+      vnTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      releaseDateComp: releaseDate ? compareDatesOnly(releaseDate, today) : null,
+      endDateComp: endDate ? compareDatesOnly(endDate, today) : null
+    });
+    
+    if (!releaseDate) return { needsAttention: false, message: '' };
+    
+    // So sánh ngày
+    const releaseDateComp = compareDatesOnly(releaseDate, today);
+    const endDateComp = endDate ? compareDatesOnly(endDate, today) : null;
+    
+    // Case 1: Movie has ended (end_date < today) - should be stop_showing and hidden
+    if (endDateComp !== null && endDateComp < 0 && (movie.type !== 'stop_showing' || movie.status !== 0)) {
+      return { 
+        needsAttention: true, 
+        message: 'Phim đã kết thúc chiếu nhưng chưa cập nhật trạng thái',
+        suggestedType: 'stop_showing',
+        suggestedStatus: 0
+      };
+    }
+    
+    // Case 2: Movie is currently showing (release_date <= today <= end_date or no end_date)
+    if (releaseDateComp <= 0 && (endDateComp === null || endDateComp >= 0)) {
+      if (movie.type !== 'now_showing' || movie.status !== 1) {
+        return { 
+          needsAttention: true, 
+          message: 'Phim đang trong thời gian chiếu nhưng chưa cập nhật trạng thái',
+          suggestedType: 'now_showing',
+          suggestedStatus: 1
+        };
+      }
+    }
+    
+    // Case 3: Movie is coming soon (release_date > today) - should be coming_soon and visible  
+    if (releaseDateComp > 0 && (movie.type !== 'coming_soon' || movie.status !== 1)) {
+      return { 
+        needsAttention: true, 
+        message: 'Phim chưa khởi chiếu nhưng chưa cập nhật trạng thái',
+        suggestedType: 'coming_soon',
+        suggestedStatus: 1
+      };
+    }
+    
+    return { needsAttention: false, message: '' };
+  };
+  
+  // Count movies that need attention
+  const moviesNeedingAttention = movies.filter(movie => getMovieStatusInfo(movie).needsAttention);
 
   // Tạo array cho pagination buttons
   const getPaginationRange = () => {
@@ -108,19 +302,59 @@ const AdminMovies = () => {
                 Hiển thị {showingFrom}-{showingTo} của {totalMoviesCount}
               </span>
             )}
+            {moviesNeedingAttention.length > 0 && (
+              <span className="text-amber-600 font-medium">
+                ⚠️ {moviesNeedingAttention.length} phim cần cập nhật trạng thái
+              </span>
+            )}
+          </div>
+          {lastAutoUpdate && (
+            <div className="text-xs text-gray-500 mt-1">
+              Cập nhật cuối: {lastAutoUpdate.toLocaleTimeString()}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleManualRefresh}
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
+            title="Làm mới và kiểm tra trạng thái phim"
+          >
+            <RefreshCw size={16} />
+            Làm mới
+          </button>
+          <button
+            className="bg-green-600 hover:bg-green-700 px-4 py-2 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
+            onClick={() => {
+              setIsAdding(true);
+              setEditingMovie(null);
+            }}
+          >
+            <span>+</span>
+            Thêm phim
+          </button>
+        </div>
+      </div>
+
+      {/* Status Alert */}
+      {moviesNeedingAttention.length > 0 && (
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <Clock className="h-5 w-5 text-amber-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-amber-800">
+                Cần cập nhật trạng thái phim
+              </h3>
+              <div className="mt-2 text-sm text-amber-700">
+                <p>Có {moviesNeedingAttention.length} phim cần được cập nhật trạng thái tự động dựa trên ngày chiếu.</p>
+                <p className="mt-1 text-xs">Hệ thống sẽ tự động cập nhật khi bạn làm mới trang.</p>
+              </div>
+            </div>
           </div>
         </div>
-        <button
-          className="bg-green-600 hover:bg-green-700 px-4 py-2 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
-          onClick={() => {
-            setIsAdding(true);
-            setEditingMovie(null);
-          }}
-        >
-          <span>+</span>
-          Thêm phim
-        </button>
-      </div>
+      )}
 
       {/* Search */}
       <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
@@ -170,25 +404,32 @@ const AdminMovies = () => {
           <h3 className="text-lg font-semibold mb-4 text-gray-800">
             {editingMovie ? 'Chỉnh sửa phim' : 'Thêm phim mới'}
           </h3>
+          <form onSubmit={handleFormSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { name: 'title', placeholder: 'Tên phim *', required: true },
-              { name: 'duration', placeholder: 'Thời lượng (phút) *', type: 'number', required: true },
-              { name: 'genre', placeholder: 'Thể loại *', required: true },
-              { name: 'director', placeholder: 'Đạo diễn *', required: true },
-              { name: 'cast', placeholder: 'Diễn viên', required: false },
-              { name: 'trailer_url', placeholder: 'Trailer URL', required: false },
+              { name: 'title', placeholder: 'Tên phim *', label: 'Tên phim', required: true },
+              { name: 'duration', placeholder: 'Thời lượng (phút) *', label: 'Thời lượng', type: 'number', required: true },
+              { name: 'genre', placeholder: 'Thể loại *', label: 'Thể loại', required: true },
+              { name: 'director', placeholder: 'Đạo diễn *', label: 'Đạo diễn', required: true },
+              { name: 'studio', placeholder: 'Nhà sản xuất *', label: 'Nhà sản xuất', required: true},
+              { name: 'cast', placeholder: 'Diễn viên', label: 'Diễn viên', required: false },
+              { name: 'nation', placeholder: 'Quốc gia', label: 'Quốc gia', required: false },
             ].map((field) => (
-              <input
-                key={field.name}
-                name={field.name}
-                type={field.type || 'text'}
-                value={movieData[field.name] || ''}
-                onChange={handleInputChange}
-                placeholder={field.placeholder}
-                required={field.required}
-                className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div key={field.name} className="mb-4">
+                <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 mb-2">
+                  {field.label} {field.required && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  id={field.name}
+                  name={field.name}
+                  type={field.type || 'text'}
+                  value={movieData[field.name] || ''}
+                  onChange={handleInputChange}   
+                  placeholder={field.placeholder}
+                  required={field.required}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             ))}
           </div>
           
@@ -235,6 +476,7 @@ const AdminMovies = () => {
                 <option value="">-- Chọn loại --</option>
                 <option value="now_showing">Đang chiếu</option>
                 <option value="coming_soon">Sắp chiếu</option>
+                <option value="stop_showing">Đã kết thúc</option>
               </select>
             </div>
 
@@ -254,31 +496,80 @@ const AdminMovies = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ngày khởi chiếu
-              </label>
-              <input
-                type="date"
-                name="release_date"
-                value={movieData.release_date || ''}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          {/* Date Range Picker */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Thời gian chiếu *
+              <span className="text-red-500 ml-1">*</span>
+            </label>
+            
+            {/* Display selected dates */}
+            <div className="flex items-center gap-4 mb-3 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-blue-600" />
+                <span className="text-sm text-gray-700">
+                  <strong>Khởi chiếu:</strong> {movieData.release_date ? format(new Date(movieData.release_date), 'dd/MM/yyyy', { locale: vi }) : 'Chưa chọn'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-red-600" />
+                <span className="text-sm text-gray-700">
+                  <strong>Kết thúc:</strong> {movieData.end_date ? format(new Date(movieData.end_date), 'dd/MM/yyyy', { locale: vi }) : 'Chưa chọn'}
+                </span>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ngày kết thúc
-              </label>
-              <input
-                type="date"
-                name="end_date"
-                value={movieData.end_date || ''}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+
+            {/* Date picker toggle button */}
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between"
+            >
+              <span className="text-gray-700">
+                {movieData.release_date && movieData.end_date
+                  ? `${format(new Date(movieData.release_date), 'dd/MM/yyyy')} - ${format(new Date(movieData.end_date), 'dd/MM/yyyy')}`
+                  : 'Chọn khoảng thời gian chiếu'
+                }
+              </span>
+              <Calendar size={16} className="text-gray-400" />
+            </button>
+
+            {/* Date Range Picker */}
+            {showDatePicker && (
+              <div className="mt-2 border border-gray-300 rounded-lg bg-white shadow-lg">
+                <DateRange
+                  ranges={dateRange}
+                  onChange={handleDateRangeChange}
+                  locale={vi}
+                  minDate={new Date()}
+                  maxDate={addDays(new Date(), 365)}
+                  editableDateInputs={true}
+                  moveRangeOnFirstSelection={false}
+                  rangeColors={['#3b82f6']}
+                  className="w-full"
+                />
+                <div className="p-3 border-t bg-gray-50 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDatePicker(false)}
+                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-md"
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDatePicker(false)}
+                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Xác nhận
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            <p className="text-xs text-gray-500 mt-2">
+              Chọn ngày khởi chiếu và ngày kết thúc. Hệ thống sẽ tự động cập nhật trạng thái phim dựa trên thời gian này.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -314,9 +605,28 @@ const AdminMovies = () => {
               )}
             </div>
           </div>
-
-        
-
+       
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Trailer Video
+            </label>
+            <input
+              type="file"
+              name="trailer_url"
+              onChange={handleInputChange}
+              accept="video/mp4,video/quicktime,video/x-matroska"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            {movieData.trailer_url && typeof movieData.trailer_url === 'string' && (
+              <div className="mt-2">
+                <video controls className="w-64 h-auto rounded-lg shadow">
+                  <source src={movieData.trailer_url} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            )}
+          </div>
+          
           <div className="flex gap-3 mt-6">
             <button
               onClick={handleFormSubmit}
@@ -331,6 +641,7 @@ const AdminMovies = () => {
               Hủy
             </button>
           </div>
+          </form>
         </div>
       )}
 
@@ -354,7 +665,7 @@ const AdminMovies = () => {
                       Hình ảnh
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Chi tiết
+                      Chi tiết & Thời gian
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Trạng thái
@@ -365,89 +676,130 @@ const AdminMovies = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {movies.map((movie) => (
-                    <tr key={movie.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{movie.title}</div>
-                          <div className="text-sm text-gray-500">{movie.genre}</div>
-                          <div className="text-sm text-gray-500">{movie.duration} phút</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center space-x-2">
-                          {movie.poster && (
-                            <img
-                              src={movie.poster}
-                              alt="Poster"
-                              className="w-12 h-16 object-cover rounded shadow"
-                            />
+                  {movies.map((movie) => {
+                    const statusInfo = getMovieStatusInfo(movie);
+                    return (
+                      <tr key={movie.id} className={`hover:bg-gray-50 ${statusInfo.needsAttention ? 'bg-amber-50' : ''}`}>
+                        <td className="px-4 py-4">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                              {movie.title}
+                              {statusInfo.needsAttention && (
+                                <span className="text-amber-500" title={statusInfo.message}>
+                                  ⚠️
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500">{movie.genre}</div>
+                            <div className="text-sm text-gray-500">{movie.duration} phút</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center space-x-2">
+                            {movie.poster && (
+                              <img
+                                src={movie.poster}
+                                alt="Poster"
+                                className="w-12 h-16 object-cover rounded shadow"
+                              />
+                            )}
+                            {movie.banner && (
+                              <img
+                                src={movie.banner}
+                                alt="Banner"
+                                className="w-20 h-12 object-cover rounded shadow"
+                              />
+                            )}
+                            {movie.trailer_url && (
+                            <div className="flex items-center text-blue-600">
+                              <Play size={16} />
+                              <span className="text-xs ml-1">Video</span>
+                            </div>
                           )}
-                          {movie.banner && (
-                            <img
-                              src={movie.banner}
-                              alt="Banner"
-                              className="w-20 h-12 object-cover rounded shadow"
-                            />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm text-gray-900">
-                          <div>Đạo diễn: {movie.director}</div>
-                          <div>Độ tuổi: {movie.age}</div>
-                          <div>Khởi chiếu: {movie.release_date}</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="space-y-1">
-                          
-                          {/* Loại chiếu */}
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            movie.type === 'now_showing'
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {movie.typeLabel}
-                          </span>
-                          {/* Trạng thái hiển thị */}
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            movie.status === 1 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {movie.statusLabel}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <div className="flex justify-center space-x-2">
-                          <button
-                            className="text-blue-600 hover:text-blue-800 p-1"
-                            onClick={() => {
-                              console.log('Editing movie:', movie); // Debug log
-                              setEditingMovie(movie);
-                              setIsAdding(false);
-                            }}
-                            title="Chỉnh sửa"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            className="text-red-600 hover:text-red-800 p-1"
-                            onClick={() => {
-                              if (window.confirm('Bạn có chắc chắn muốn xóa phim này?')) {
-                                handleDeleteMovie(movie.id);
-                              }
-                            }}
-                            title="Xóa"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="text-sm text-gray-900 space-y-1">
+                            <div>Quốc gia: {movie.nation}</div>
+                            <div>Đạo diễn: {movie.director}</div>
+                            <div>Nhà sản xuất: {movie.studio}</div>
+                            <div>Độ tuổi: {movie.age}</div>
+                            <div className="text-blue-600 font-medium">
+                              Khởi chiếu: {movie.release_date}
+                            </div>
+                            {movie.end_date && (
+                              <div className="text-red-600 font-medium">
+                                Kết thúc: {movie.end_date}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="space-y-2">
+                            {/* Loại chiếu */}
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              movie.type === 'now_showing'
+                                ? 'bg-green-100 text-green-800' 
+                                : movie.type === 'coming_soon'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {movie.typeLabel}
+                            </span>
+                            
+                            {/* Trạng thái hiển thị */}
+                            <div className="flex items-center gap-1">
+                              {movie.status === 1 ? (
+                                <Eye size={12} className="text-green-600" />
+                              ) : (
+                                <EyeOff size={12} className="text-red-600" />
+                              )}
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                movie.status === 1 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {movie.statusLabel}
+                              </span>
+                            </div>
+                            
+                            {/* Warning message */}
+                            {statusInfo.needsAttention && (
+                              <div className="text-xs text-amber-700 bg-amber-100 p-2 rounded">
+                                {statusInfo.message}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <div className="flex justify-center space-x-2">
+                            <button
+                              className="text-blue-600 hover:text-blue-800 p-1"
+                              onClick={() => {
+                                console.log('Editing movie:', movie);
+                                setEditingMovie(movie);
+                                setIsAdding(false);
+                              }}
+                              title="Chỉnh sửa"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-800 p-1"
+                              onClick={() => {
+                                if (window.confirm('Bạn có chắc chắn muốn xóa phim này?')) {
+                                  handleDeleteMovie(movie.id);
+                                }
+                              }}
+                              title="Xóa"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

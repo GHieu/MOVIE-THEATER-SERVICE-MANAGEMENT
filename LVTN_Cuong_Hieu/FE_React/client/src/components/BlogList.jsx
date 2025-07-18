@@ -40,7 +40,9 @@ export default function BlogList() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Tin tức điện ảnh</h1>
+          <h2 className="  py-1 mb-5 font-semibold ">
+            <span className="text-yellow-400 border-l-4 border-yellow-400 pl-2 text-2xl ">Tin tức điện ảnh</span>
+          </h2>
         <BlogSearch onSearch={handleSearch} />
       </div>
 

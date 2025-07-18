@@ -1,6 +1,19 @@
 // services/apiSeat.js - Cập nhật với các API cần thiết
 import api from './api';
 
+
+
+export const fetchSeatsByShowtime = async (showtimeId) => {
+  try {
+    console.log('🔍 DEBUG - fetchSeatsByShowtime:', { showtimeId, url: `/showtimes/${showtimeId}/seats` });
+    const response = await api.get(`/showtimes/${showtimeId}/seats`);
+    console.log('🔍 DEBUG - fetchSeatsByShowtime response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching seats for showtime ${showtimeId}:`, error);
+    throw new Error(error.response?.data?.message || 'Không thể tải danh sách ghế');
+  }
+};
 // Lấy ghế theo room_id
 export const fetchSeatsByRoom = async (roomId) => {
   try {
@@ -11,19 +24,6 @@ export const fetchSeatsByRoom = async (roomId) => {
     throw new Error(error.response?.data?.message || 'Không thể tải danh sách ghế');
   }
 };
-
-// Lấy ghế theo showtime (bao gồm trạng thái đã đặt)
-export const fetchSeatsByShowtime = async (showtimeId) => {
-  try {
-    const response = await api.get(`/showtimes/${showtimeId}/seats`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching seats for showtime ${showtimeId}:`, error);
-    // Fallback: nếu API showtime/seats chưa có, dùng API room
-    throw new Error(error.response?.data?.message || 'Không thể tải danh sách ghế');
-  }
-};
-
 // Kiểm tra tính khả dụng của ghế
 export const checkSeatAvailability = async (showtimeId, seatIds) => {
   try {

@@ -24,7 +24,7 @@ export default function BlogCard({ blog }) {
         <img 
           src={getImageUrl(blog.image)} 
           alt={blog.title}
-          className="w-full h-full object-cover hover:scale-105 transition duration-300"
+          className="w-full h-full object-fill hover:scale-105 transition duration-300"
           onError={(e) => {
             if (e.target.src !== `${window.location.origin}/placeholder-image.jpg`) {
               e.target.src = '/placeholder-image.jpg';

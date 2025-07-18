@@ -13,8 +13,13 @@ class MovieController extends Controller
     {
         $query = Movie::query();
 
+
+
+
         // Luôn chỉ hiển thị phim còn chiếu (end_date >= hôm nay)
         $query->whereDate('end_date', '>=', Carbon::today());
+
+
 
         // Mặc định chỉ hiện phim status = 1 (hiển thị)
         $query->where('status', 1);
@@ -32,7 +37,29 @@ class MovieController extends Controller
         return response()->json(
             $query->orderBy('release_date', 'desc')->get()
         );
+
+
+
+    if ($request->has('status')) {
+        $query->where('status', $request->status);
+
     }
+
+    if ($request->has('search')) {
+        $query->where('title', 'like', '%' . $request->search . '%');
+    }
+
+    if ($request->has('type')) {
+        $query->where('type', $request->type);
+    }
+
+    // Chỉ lọc theo end_date khi không có tham số search hoặc type
+    if (!$request->has('search') && !$request->has('type')) {
+        $query->whereDate('end_date', '>=', Carbon::today());
+    }
+
+    return response()->json($query->orderBy('release_date', 'desc')->get());
+}
 
 
     //xem chi tiết
