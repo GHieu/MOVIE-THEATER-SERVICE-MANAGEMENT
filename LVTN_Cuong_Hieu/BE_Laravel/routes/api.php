@@ -54,7 +54,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/{id}', [SeatController::class, 'update']);
             Route::get('/count/{room_id}', [SeatController::class, 'countType']);
             Route::post('/settype/{room_id}', [SeatController::class, 'setType']);
-            
+
 
         });
 
@@ -151,7 +151,7 @@ Route::prefix('admin')->group(function () {
             // Danh sách khách hàng
             Route::get('', [CustomerController::class, 'index']);
 
-                    // Thống kê tổng quan khách hàng
+            // Thống kê tổng quan khách hàng
             Route::get('statistics', [CustomerController::class, 'statistics']);
 
             // Chi tiết khách hàng
@@ -172,7 +172,7 @@ Route::prefix('admin')->group(function () {
             // Cập nhật điểm thành viên thủ công (Admin)
             Route::post('/{id}/update-points', [CustomerController::class, 'updatePoints']);
 
-    
+
         });
 
         //Revenue
@@ -183,6 +183,18 @@ Route::prefix('admin')->group(function () {
             Route::get('/range', [RevenueController::class, 'rangeRevenue']);
             Route::get('/overview', [RevenueController::class, 'overview']);
             Route::get('/service-details', [RevenueController::class, 'serviceDetails']);
+
+            Route::get('/top-movies', [RevenueController::class, 'topMoviesByRevenue']);
+            Route::get('/room-performance', [RevenueController::class, 'roomPerformance']);
+            Route::get('/promotion-effectiveness', [RevenueController::class, 'promotionEffectiveness']);
+            Route::get('/customer-analysis', [RevenueController::class, 'customerAnalysis']);
+            Route::get('/loyalty-program', [RevenueController::class, 'loyaltyProgramAnalysis']);
+            Route::get('/time-slot-analysis', [RevenueController::class, 'timeSlotAnalysis']);
+            Route::get('/genre-performance', [RevenueController::class, 'genrePerformance']);
+            Route::get('/trend-analysis', [RevenueController::class, 'trendAnalysis']);
+            Route::get('/advanced-dashboard', [RevenueController::class, 'advancedDashboard']);
+            Route::get('/top-services', [RevenueController::class, 'topServices']);
+            Route::get('/rating-revenue', [RevenueController::class, 'ratingVsRevenue']);
         });
     });
 });
@@ -228,8 +240,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('showtimes/{showtime_id}/seats', [App\Http\Controllers\Customer\BookTicketController::class, 'getSeatsByShowtime']);
     Route::get('/payment-status/{ticket_id}', [App\Http\Controllers\Customer\BookTicketController::class, 'checkPaymentStatus']);
 
-    
-   //Review
+
+    //Review
     Route::prefix('/reviews')->group(function () {
         Route::post('/', [App\Http\Controllers\Customer\ReviewController::class, 'store']);
     });
